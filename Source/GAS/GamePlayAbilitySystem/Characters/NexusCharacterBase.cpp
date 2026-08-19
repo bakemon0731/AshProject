@@ -1,0 +1,205 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "NexusCharacterBase.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "GAS/GamePlayAbilitySystem/NexusAbilitySystemComponent.h"
+#include "GAS/GamePlayAbilitySystem/Abilities/NexusGameplayAbility.h"
+#include "GAS/GamePlayAbilitySystem/AttributeSets/BasicAttributeSet.h"
+#include "GAS/GamePlayAbilitySystem/AttributeSets/CombatAttributeSet.h"
+
+// Sets default values
+ANexusCharacterBase::ANexusCharacterBase()
+{
+	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = true;
+
+	// Add the Ability System Component
+	AbilitySystemComponent = CreateDefaultSubobject<UNexusAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent->SetIsReplicated(true);
+	AbilitySystemComponent->SetReplicationMode(AscReplicationMode);
+	
+	//Set size for collision capsule
+	GetCapsuleComponent()->InitCapsuleSize(35.f, 90.0f);
+	
+	//Don't rotate when the controller rotates. Let that just affect the camera.
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationYaw = false;
+	bUseControllerRotationRoll = false;
+	
+	//Configure character movement
+	GetCharacterMovement()->bOrientRotationToMovement = true; 
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
+	
+	GetCharacterMovement()->JumpZVelocity = 500.f;
+	GetCharacterMovement()->AirControl = 0.35f;
+	GetCharacterMovement()->MaxWalkSpeed = 500.f;
+	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
+	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
+	GetCharacterMovement()->BrakingDecelerationFalling = 1500.f;
+	
+	//基本属性セットを追加
+	BasicAttributeSet = CreateDefaultSubobject<UBasicAttributeSet>(TEXT("BasicAttributeSet"));
+	//戦闘用の属性セットを追加
+	CombatAttributeSet = CreateDefaultSubobject<UCombatAttributeSet>(TEXT("CombatAttributeSet"));
+}
+
+// Called when the game starts or when spawned
+void ANexusCharacterBase::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	AbilitySystemComponent->RegisterGameplayTagEvent(FGameplayTag::RequestGameplayTag("State.Dead"))//State.Deadタグが追加された時に呼ばれるバインドイベント。
+	.AddUObject(this, &ANexusCharacterBase::OnDeathTagChanged);
+}
+
+// Called every frame
+void ANexusCharacterBase::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+}
+
+// Called to bind functionality to input
+
+//移動、ジャンプ、アビリティ発動などの入力を設定する場所
+void ANexusCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+}
+
+
+//コントローラーがキャラクターを操作し始めた時に呼ばれます（サーバー側でのみ呼ばれる）
+void ANexusCharacterBase::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+		GrantAbilities(StartingAbilities);
+	}
+}
+
+
+//PlayerStateがネットワーク上でレプリケート（同期）された時に呼ばれます（クライアント側）
+//マルチプレイヤーゲームで、クライアント側でも初期化が必要だから
+void ANexusCharacterBase::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+	}
+}
+
+//Ability System Componentへのアクセスを提供するゲッター関数
+//他のクラスからこのキャラクターのアビリティシステムにアクセスする時に使用
+UAbilitySystemComponent* ANexusCharacterBase::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent;
+}
+
+
+TArray<FGameplayAbilitySpecHandle> ANexusCharacterBase::GrantAbilities//付与するアビリティのハンドル取得
+(TArray<TSubclassOf<UGameplayAbility>> AbilitiesToGrant,int32 Level)
+{
+	if (!AbilitySystemComponent || !HasAuthority())// AbilitySystemComponent が存在し、このアクター（キャラクター）がサーバー上で権限を持つか確認
+	{
+		return TArray<FGameplayAbilitySpecHandle>();//もし条件を満たさなければ、空の配列を返す。
+	}
+	
+	TArray<FGameplayAbilitySpecHandle> AbilityHandles;
+	
+	for (TSubclassOf<UGameplayAbility> Ability : AbilitiesToGrant)
+	{
+		
+		int32 InputID = -1;// InputID を初期化
+		bool ShouldActivate = false;
+		if (const UNexusGameplayAbility* NexusAbilityCDO = GetDefault<UNexusGameplayAbility>(Ability))// もし Ability が NexusGameplayAbility のサブクラスであれば、CDO（Class Default Object）を取得
+		{
+			InputID = static_cast<int32>(NexusAbilityCDO->AbilityInputID);// AbilityInputID を CDO から取得して設定
+			ShouldActivate = NexusAbilityCDO->AutoActivateWhenGranted;// AutoActivateWhenGranted を CDO から取得して設定
+		}
+		
+		
+		FGameplayAbilitySpecHandle SpecHandle = AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(
+			Ability,Level, InputID, this
+			));
+		AbilityHandles.Add(SpecHandle);//返されたハンドルを配列に追加して返す
+		
+		
+		if (ShouldActivate)//もしアビィリティが付与された時に自動で発動する設定なら、アビリティを発動する
+		{
+			AbilitySystemComponent->TryActivateAbility(SpecHandle);
+		}
+	}
+	
+	SendAbilitiesChangedEvent();
+	return AbilityHandles;
+}
+
+
+void ANexusCharacterBase::RemoveAbilities//ハンドルで削除
+(TArray<FGameplayAbilitySpecHandle> AbilityHandlesToRemove)
+{
+	if (!AbilitySystemComponent || !HasAuthority())
+	{
+		return;
+	}
+	
+	for (FGameplayAbilitySpecHandle AbilityHandle : AbilityHandlesToRemove)
+	{
+		AbilitySystemComponent->ClearAbility(AbilityHandle);
+	}
+	
+	SendAbilitiesChangedEvent();
+}
+
+void ANexusCharacterBase::SendAbilitiesChangedEvent()//アビリティの変更を知らせるゲームプレイイベントを送る関数
+{
+	FGameplayEventData EventData;//送るイベント用のデータ構造を作成
+	EventData.EventTag = FGameplayTag::RequestGameplayTag(FName("Event.Abilities.Changed"));//イベントのタグを設定
+	EventData.Instigator = this;//イベントの発生者・対象を設定（ここでは同じキャラクター）
+	EventData.Target = this;// 指定したアクター（このキャラクター）へ Gameplay Event を送信
+	
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, EventData.EventTag, EventData);
+}
+
+
+void ANexusCharacterBase::MultiSendGameplayEventToSelf_Implementation(AActor* TargetActor,
+	FGameplayEventData EventData)//サーバー側から全クライアントにイベントを送信する関数の実装
+{
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor, EventData.EventTag, EventData);
+}
+
+
+void ANexusCharacterBase::ServerSendGameplayEventToSelf_Implementation(FGameplayEventData EventData)// サーバー上で、このキャラクター（自身）に対して GameplayEvent を送る処理
+{
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, EventData.EventTag, EventData);
+}
+
+void ANexusCharacterBase::HandleDeath_Implementation()//死亡時の処理を実装する関数（ブループリントでオーバーライド可能）
+{
+	GetMesh()->SetSimulatePhysics(true);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCharacterMovement()->DisableMovement();
+	
+	FVector Impulse = GetActorForwardVector() * -20000;//アクタの向いている方向に×－2００００（逆方向）する。
+	Impulse.Z = 15000;//Z軸方向に１５０００の力を加える。
+	GetMesh()->AddImpulseAtLocation(Impulse, GetActorLocation());
+}
+
+void ANexusCharacterBase::OnDeathTagChanged(const FGameplayTag CallbackTag, int32 NewCount)//死亡時のタグが追加された。
+{
+	if (NewCount > 0)
+	{
+		HandleDeath();//死亡時の処理を実行
+	}
+	
+}
