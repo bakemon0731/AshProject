@@ -3,6 +3,8 @@
 
 #include "BasicAttributeSet.h"
 #include "GameplayEffectExtension.h"
+#include "GameFramework/Pawn.h"
+#include "Perception/AISense_Damage.h"
 #include "Net/UnrealNetwork.h"
 
 UBasicAttributeSet::UBasicAttributeSet()
@@ -57,6 +59,40 @@ void UBasicAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallb
 	{
 		float TotalDamage = GetDamage();// Damage 属性の値を取得する
 		SetDamage(0.f);// Damage 属性を0にリセットする
+		
+		
+		//ここからAIへの感知（ダメージイベント）送信を追加
+		if (TotalDamage > 0.f)//Damageをうけた場合
+		{
+			//ターゲット（ダメージを受けた側＝AI自身）を取得
+			AActor* TargetActor = GetOwningActor();
+			
+			// ソース（ダメージを与えた側＝プレイヤーや発射物のInstigator）を取得
+			AActor* SourceActor = Data.EffectSpec.GetContext().GetInstigator();
+			
+			// SourceActorがAPawn（キャラクターやプレイヤー）にキャストできるか確認する
+			// ※燃える床などの環境ダメージは通常Pawnではないため、ここで弾く
+			APawn* Sourcepawn = Cast<APawn>(SourceActor);
+			
+			// ターゲットが存在し、かつ攻撃者がPawnである場合のみ処理を進める
+			if (TargetActor && Sourcepawn)
+			{
+				// 念のため、自分自身の攻撃（自傷ダメージなど）ではないことも確認
+				if (TargetActor != Sourcepawn)
+				{
+					UAISense_Damage::ReportDamageEvent(
+						TargetActor,//WorldContext
+						TargetActor,//ダメージを受けたActor
+						Sourcepawn,// 攻撃者（APawn）
+						TotalDamage,// ダメージ量
+						TargetActor->GetActorLocation(),// イベント発生位置
+						TargetActor->GetActorLocation(),// ヒット位置
+						FName("Damage")// イベントタグ
+						);
+				}
+			}
+		}
+		
 		
 		float CurrentShield = GetShield();//現在のShieldを取得する
 		if (CurrentShield > 0.f)//もしシールドを装備している場合
