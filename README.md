@@ -1,3 +1,3 @@
-C++でGameplayAbilitySystem構築したプロジェクト。
+C++でGameplayAbilitySystemの基盤を構築したプロジェクト。
 マルチプレイに対応した設計。
 ビヘイビアツリーや環境クエリシステムを使った高度な敵AIの構築。
