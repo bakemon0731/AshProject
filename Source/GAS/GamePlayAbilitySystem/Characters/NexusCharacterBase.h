@@ -29,6 +29,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")// キャラクターに付与される戦闘用の属性セット（Armor、Strengthなど）を管理するための変数
 	class UCombatAttributeSet* CombatAttributeSet;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TeamNumber")
+	int32 TeamNumber = 2;
+	
 	
 protected://マルチプレイヤーでのデータ同期に必要
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability System")

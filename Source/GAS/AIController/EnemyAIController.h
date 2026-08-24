@@ -59,15 +59,27 @@ protected:
 	UPROPERTY(EditDefaultsOnly,Category="Blackboard")
 	FName DefendRadiusKeyName = "DefendRadius";
 	
+	// ステート変更処理を共通化した関数
+	UFUNCTION(BlueprintCallable,Category="StateEffect")
+	void ChangeStateEffect(TSubclassOf<class UGameplayEffect> NewStateEffect);
+	
 	// 付与する GameplayEffect (GE_Passive)
 	UPROPERTY(EditDefaultsOnly,Category="StateEffect")
 	TSubclassOf<class UGameplayEffect>PassiveStateEffect;
+	
+	// 視覚で捉えたアクターのリスト (BPの Known Seen Actors)
+	UPROPERTY(BlueprintReadWrite,Category="AIPerception")
+	TArray<AActor*> KnownSeenActors;
+	
+	// Seekingタイマーのハンドル (BPの Seek Attack Target Timer)
+	UPROPERTY(BlueprintReadWrite,Category="AITimer")
 	
 	// タイマー制御用のハンドル (BPの Check Forgotten Actor Timer 変数)
 	FTimerHandle CheckForgottenActorTimer;
 	
 	// 現在のStateエフェクトのハンドル (BPの Current State Effect 変数)
 	FActiveGameplayEffectHandle CurrentStateEffect;
+	
 	
 	
 	

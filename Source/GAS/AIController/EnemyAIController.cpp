@@ -75,48 +75,47 @@ AEnemyAIController::AEnemyAIController()
 	}
 }
 
-void AEnemyAIController::SetStateAsPassive()
+void AEnemyAIController::ChangeStateEffect(TSubclassOf<class UGameplayEffect> NewStateEffect)
 {
 	//Pawn参照からPawn（GetControlledPawnノード）を取得
 	APawn* ControlledPawn = GetPawn();
-	//Pawnが有効ではない場合は実行しない。
 	if (!ControlledPawn) return;
 	
 	// ControlldPawnがGASを持っているか確認。
 	IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(ControlledPawn);
-	//ASIが有効かどうか確認。有効な場合は実行。
-	if (ASI)
+	if (!ASI) return;
+	
+	// Controlled Pawnから AbilitySystemComponent を取得
+	UAbilitySystemComponent* ASC = ASI->GetAbilitySystemComponent();
+	if (!ASC) return;
+	
+	// 現在のStateエフェクトを削除
+	if(CurrentStateEffect.IsValid())
 	{
-		// Controlled Pawnから AbilitySystemComponent を取得
-		UAbilitySystemComponent* ASC = ASI->GetAbilitySystemComponent();
-		//ASCが有効かどうか確認。有効な場合は実行。
-		if (ASC)
+		ASC->RemoveActiveGameplayEffect(CurrentStateEffect,-1);
+		// ハンドルを安全のために初期化
+		CurrentStateEffect.Invalidate();
+	}
+	
+	// Stateエフェクトを付与する
+	if(NewStateEffect)
+	{
+		//エフェクトのコンテキストを作成
+		FGameplayEffectContextHandle EffectContext = ASC->MakeEffectContext();
+		EffectContext.AddSourceObject(this);
+		
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(NewStateEffect,0.0f,EffectContext);
+		if (SpecHandle.IsValid())
 		{
-			// 現在のStateエフェクトの削除
-			//CurrentStateEffect変数が有効かどうか。有効な場合は実行。
-			if (CurrentStateEffect.IsValid())
-			{
-				ASC->RemoveActiveGameplayEffect(CurrentStateEffect,-1);
-			}
-			
-			//新しいStateエフェクトを付与。
-			//PassiveStateEffectが有効かどうか。有効な場合は実行。
-			if (PassiveStateEffect)
-			{
-				//エフェクトのコンテキストを作成
-				FGameplayEffectContextHandle EffectContext = ASC->MakeEffectContext();
-				EffectContext.AddSourceObject(this);
-				
-				FGameplayEffectSpecHandle SpecHandle = ASC -> MakeOutgoingSpec(PassiveStateEffect,0.0f,EffectContext);
-				//SpecHandleが有効かどうか。有効な場合は実行。
-				if (SpecHandle.IsValid())
-				{
-					//GameplayEffect（ApplyGameplayEffectSpecToSelf）を適用し、戻り値をCurrentStateEffect変数に保存。
-					CurrentStateEffect = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-				}
-			}
+			//GameplayEffect（ApplyGameplayEffectSpecToSelf）を適用し、戻り値をCurrentStateEffect変数に保存。
+			CurrentStateEffect = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 		}
 	}
+}
+
+void AEnemyAIController::SetStateAsPassive()
+{
+	ChangeStateEffect(PassiveStateEffect);
 }
 
 void AEnemyAIController::OnPossess(APawn* InPawn)
