@@ -1,3 +1,1 @@
-C++でGameplayAbilitySystemの基盤を構築したプロジェクト。
-マルチプレイに対応した設計。
-独自のAIController、ビヘイビアツリー、環境クエリシステムを使った高度な敵AIの構築。
+# AshProject
