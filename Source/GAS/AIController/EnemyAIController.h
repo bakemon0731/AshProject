@@ -6,6 +6,8 @@
 #include "AIController.h"
 #include "GameplayEffectTypes.h"
 #include "Perception/AIPerceptionTypes.h"//AIの感知データ（FAIStimulus）を扱うために必要
+#include "GameplayTagContainer.h"
+#include "GAS/GamePlayAbilitySystem/Characters/NexusCharacterBase.h"//TeamNumberが定義されている親クラスのヘッダー
 #include "EnemyAIController.generated.h"
 
 //前方宣言
@@ -26,6 +28,10 @@ public:
 	// ステートをPassiveに変更する関数
 	UFUNCTION(BlueprintCallable,Category="State")
 	void SetStateAsPassive();
+	
+	// ステートをAttackingに変更する関数
+	UFUNCTION(BlueprintCallable,Category="State")
+	void SetStateAsAttacking(AActor* TargetActor);
 
 	
 protected:
@@ -47,9 +53,20 @@ protected:
 	// BPの Event On UnPossess に相当する関数
 	virtual void OnUnPossess() override;
 	
-	
 	// タイマーで周期実行される関数
 	void CheckIfForgottenSeeActor();
+	
+	// ステート変更処理を共通化した関数
+	UFUNCTION(BlueprintCallable,Category="StateEffect")
+	void ChangeStateEffect(TSubclassOf<class UGameplayEffect> NewStateEffect);
+	
+	// 現在のStateタグを取得する関数
+	UFUNCTION(BlueprintCallable,Category="State")
+	FGameplayTag GetCurrentState() const;
+	
+	// チーム判定関数（BPのOn Same Team）
+	UFUNCTION(BlueprintCallable,Category="Team")
+	bool OnSameTeam(AActor* OtherActor) const;
 	
 	// Set Value as FloatノードのKeyNameの変数
 	UPROPERTY(EditDefaultsOnly,Category="Blackboard")
@@ -59,20 +76,25 @@ protected:
 	UPROPERTY(EditDefaultsOnly,Category="Blackboard")
 	FName DefendRadiusKeyName = "DefendRadius";
 	
-	// ステート変更処理を共通化した関数
-	UFUNCTION(BlueprintCallable,Category="StateEffect")
-	void ChangeStateEffect(TSubclassOf<class UGameplayEffect> NewStateEffect);
-	
 	// 付与する GameplayEffect (GE_Passive)
 	UPROPERTY(EditDefaultsOnly,Category="StateEffect")
 	TSubclassOf<class UGameplayEffect>PassiveStateEffect;
 	
+	// 付与する GameplayEffect (GE_Attacking)
+	UPROPERTY(EditDefaultsOnly,Category="StateEffect")
+	TSubclassOf<class UGameplayEffect>AttackingStateEffect;
+	
 	// 視覚で捉えたアクターのリスト (BPの Known Seen Actors)
-	UPROPERTY(BlueprintReadWrite,Category="AIPerception")
+	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite,Category="AIPerception")
 	TArray<AActor*> KnownSeenActors;
 	
 	// Seekingタイマーのハンドル (BPの Seek Attack Target Timer)
 	UPROPERTY(BlueprintReadWrite,Category="AITimer")
+	FTimerHandle SeekAttackTargetTimer;
+	
+	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite, Category="TargetActor")
+	AActor* TargetActor;
+	
 	
 	// タイマー制御用のハンドル (BPの Check Forgotten Actor Timer 変数)
 	FTimerHandle CheckForgottenActorTimer;
@@ -80,6 +102,10 @@ protected:
 	// 現在のStateエフェクトのハンドル (BPの Current State Effect 変数)
 	FActiveGameplayEffectHandle CurrentStateEffect;
 	
+private:
+	//CanSenseActor関数。「対象のアクターに対する複数ある感覚情報（視覚、聴覚など）の中から、指定した感覚データだけを取り出して、今も検知中かどうかを知りたい」という処理。
+	UFUNCTION(BlueprintPure,Category="AIPerception")
+	bool CanSenseActor(AActor* Actor,TSubclassOf<class UAISense> Sense,FAIStimulus& OutStimulus);
 	
 	
 	
@@ -96,11 +122,6 @@ protected:
 	virtual void HandleLostSight(AActor* Actor);
 	virtual void HandleSensedSound(FVector Location);
 	virtual void HandleSenseDamage(AActor* Actor);
-	
-private:
-	//CanSenseActor関数。「対象のアクターに対する複数ある感覚情報（視覚、聴覚など）の中から、指定した感覚データだけを取り出して、今も検知中かどうかを知りたい」という処理。
-	UFUNCTION(BlueprintPure,Category="AIPerception")
-	bool CanSenseActor(AActor* Actor,TSubclassOf<class UAISense> Sense,FAIStimulus& OutStimulus);
 	
 public:
 	// Called every frame

@@ -13,6 +13,7 @@
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISenseConfig_Hearing.h"
 #include "Perception/AISenseConfig_Damage.h"
+#include "AbilitySystemComponent.h"
 
 
 // Sets default values
@@ -113,10 +114,65 @@ void AEnemyAIController::ChangeStateEffect(TSubclassOf<class UGameplayEffect> Ne
 	}
 }
 
+//--------------------------------------------------
+// GetCurrentState（現在のStateタグ取得）
+// --------------------------------------------------
+FGameplayTag AEnemyAIController::GetCurrentState() const
+{
+	APawn* ControlledPawn = GetPawn();
+	if (!ControlledPawn) return FGameplayTag::EmptyTag;
+	
+	if (IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(ControlledPawn))
+	{
+		if (UAbilitySystemComponent* ASC = ASI->GetAbilitySystemComponent())
+		{
+			FGameplayTagContainer OwnedTags;
+			ASC->GetOwnedGameplayTags(OwnedTags);
+			
+			// "State" をルートに持つタグを取得する
+			FGameplayTag RootStateTag = FGameplayTag::RequestGameplayTag(FName("State"));
+			
+			for (const FGameplayTag& Tag : OwnedTags)
+			{
+				if (Tag.MatchesTag(RootStateTag))
+				{
+					return Tag;
+				}
+			}
+		}
+	}
+	return FGameplayTag::EmptyTag;
+}
+
+// --------------------------------------------------
+// OnSameTeam（チーム判定）
+// --------------------------------------------------
+bool AEnemyAIController::OnSameTeam(AActor* OtherActor) const
+{
+	if (!OtherActor) return false;
+	
+	// 自分と対象のアクターを親クラス ANexusCharacterBase にキャスト
+	const ANexusCharacterBase* MyCharacter = Cast<ANexusCharacterBase>(GetPawn());
+	const ANexusCharacterBase* TargetCharacter = Cast<ANexusCharacterBase>(OtherActor);
+	
+	// 両者ともにキャスト成功した場合、TeamNumberを直接比較
+	if (MyCharacter && TargetCharacter)
+	{
+		return MyCharacter->TeamNumber == TargetCharacter->TeamNumber;
+	}
+	return false;
+}
+
 void AEnemyAIController::SetStateAsPassive()
 {
 	ChangeStateEffect(PassiveStateEffect);
 }
+
+void AEnemyAIController::SetStateAsAttacking(AActor* Actor)
+{
+	ChangeStateEffect(AttackingStateEffect);
+}
+
 
 void AEnemyAIController::OnPossess(APawn* InPawn)
 {
@@ -219,7 +275,7 @@ void AEnemyAIController::BeginPlay()
 	}
 }
 
-// Perception更新時のメイン処理（BPの ForEachLoop & Sequence を代替
+// Perception更新時のメイン処理（BPの ForEachLoop & Sequence を代替)
 void AEnemyAIController::HandlePerceptionUpdated(const TArray<AActor*>& UpdatedActors)
 {
 	for (AActor* Actor : UpdatedActors)
@@ -262,6 +318,42 @@ void AEnemyAIController::HandlePerceptionUpdated(const TArray<AActor*>& UpdatedA
 
 void AEnemyAIController::HandleSensedSight(AActor* Actor)
 {
+	// 検知したActorが無効なら処理しない
+	if (!Actor) return;
+	
+	// 視覚したアクターを配列に追加 (BPの AddUnique)
+	KnownSeenActors.AddUnique(Actor);
+	
+	// 同じチームなら処理を終了 (早期リターンでネストを防止)
+	if (OnSameTeam(Actor)) return;
+	
+	//現在のStateを取得
+	FGameplayTag CurrentState = GetCurrentState();
+	
+	//判定対象のStateタグを準備
+	FGameplayTag TagPassive = FGameplayTag::RequestGameplayTag(FName("State.Passive"));
+	FGameplayTag TagInvestigating = FGameplayTag::RequestGameplayTag(FName("State.Investigating"));
+	FGameplayTag TagSeeking = FGameplayTag::RequestGameplayTag(FName("State.Seeking"));
+	FGameplayTag TagAttacking = FGameplayTag::RequestGameplayTag(FName("State.Attacking"));
+	
+	// ステートごとの分岐処理 (Switch on Gameplay Tag の代替)
+	if (CurrentState.MatchesTag(TagPassive)||
+		CurrentState.MatchesTag(TagInvestigating)||
+		CurrentState.MatchesTag(TagSeeking))
+	{
+		// Passive, Investigating, Seeking のいずれかなら攻撃ステートへ移行
+		// 攻撃ステート移行関数を呼び出し
+		SetStateAsAttacking(Actor);
+	}
+	else if (CurrentState.MatchesTagExact(TagAttacking))
+	{
+		// 攻撃中の場合、見つけたActorが現在のAttackTargetと同じか確認
+		if (Actor == TargetActor)
+		{
+			// 再びターゲットを視認したのでSeekingのタイマーを停止
+			GetWorldTimerManager().ClearTimer(SeekAttackTargetTimer);
+		}
+	}
 }
 
 void AEnemyAIController::HandleLostSight(AActor* Actor)
