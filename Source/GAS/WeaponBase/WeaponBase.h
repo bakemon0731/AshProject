@@ -5,6 +5,7 @@
 #include "GameplayEffectTypes.h"// GASのFGameplayEffectSpecHandleを使うため
 #include "Animation/AnimInstance.h"
 #include "CoreMinimal.h"
+#include "GameplayEffect.h"
 #include "GameFramework/Actor.h"
 #include "WeaponBase.generated.h"
 
@@ -115,9 +116,13 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "HitScanTrace")
 	FTimerHandle HitScanTimer;
 	
+	//ダメージエフェクトを適用する変数
 	UPROPERTY(BlueprintReadOnly, Category = "GameplayEffect")
 	FGameplayEffectSpecHandle EffectSpecHandle;
 	
+	//デバフのゲームプレイエフェクトを適用する変数
+	UPROPERTY(BlueprintReadOnly, Category = "GameplayEffect")
+	TSubclassOf<UGameplayEffect> DebufftoApply;
 	
 	// --- 関数 ---
 	// HitScanカスタムイベント

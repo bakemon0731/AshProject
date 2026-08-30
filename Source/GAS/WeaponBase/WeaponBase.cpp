@@ -9,6 +9,7 @@
 #include "AbilitySystemGlobals.h"// アクターからASCを簡単に取得するために必要
 #include "AbilitySystemComponent.h"     // GAS処理に必要
 #include "TimerManager.h"// タイマー処理に必要
+#include "AbilitySystemBlueprintLibrary.h"
 
 
 // Sets default values
@@ -51,6 +52,9 @@ void AWeaponBase::BeginPlay()
 
 void AWeaponBase::HitScan()
 {
+	// サーバーでのみ実行する（マルチプレイ対策）
+	if (!HasAuthority()) return;
+	
 	// 念のためコンポーネントが存在するかチェック
 	if (!TraceStart || !TraceEnd) return;
 	
@@ -107,12 +111,29 @@ void AWeaponBase::HitScan()
 					UAbilitySystemComponent* SourceASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetInstigator());
 					
 					// 双方のAbilitySystemComponentが有効かつ、EffectSpecHandleが有効である場合のみ実行
-					if (TargetASC && SourceASC || EffectSpecHandle.IsValid())
+					if (TargetASC && SourceASC && EffectSpecHandle.IsValid())
 					{
 						// この武器を所有しているアクター(ソース)から、ターゲットへGameplayEffectを実行する
 						SourceASC->ApplyGameplayEffectSpecToTarget(*EffectSpecHandle.Data.Get(), TargetASC);
+						
 					}
-				}
+					
+					if (TargetASC && SourceASC && DebufftoApply)
+					{
+						// 1. エフェクトコンテキストを作成
+						FGameplayEffectContextHandle EffectContext = SourceASC->MakeEffectContext();
+						EffectContext.AddSourceObject(this);
+
+						// 2. スペックハンドルを作成（スクショに合わせてレベルを 0.0f に変更）
+						FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(DebufftoApply, 0.0f, EffectContext);
+
+						if (SpecHandle.IsValid())
+						{
+							// 3. ターゲットにGEを適用
+							SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
+						}
+					}
+				}  
 			}
 		}
 	}
