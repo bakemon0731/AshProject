@@ -32,6 +32,14 @@ public:
 	// ステートをAttackingに変更する関数
 	UFUNCTION(BlueprintCallable,Category="State")
 	void SetStateAsAttacking(AActor* TargetActor);
+	
+	// ステートをSeekingに変更する関数
+	UFUNCTION(BlueprintCallable,Category="State")
+	void SetStateAsSeeking(FVector Location);
+	
+	// ステートをInvestigatingに変更する関数
+	UFUNCTION(BlueprintCallable,Category="State")
+	void SetStateAsInvestigating(FVector Location);
 
 	
 protected:
@@ -53,9 +61,6 @@ protected:
 	// BPの Event On UnPossess に相当する関数
 	virtual void OnUnPossess() override;
 	
-	// タイマーで周期実行される関数
-	void CheckIfForgottenSeeActor();
-	
 	// ステート変更処理を共通化した関数
 	UFUNCTION(BlueprintCallable,Category="StateEffect")
 	void ChangeStateEffect(TSubclassOf<class UGameplayEffect> NewStateEffect);
@@ -68,6 +73,18 @@ protected:
 	UFUNCTION(BlueprintCallable,Category="Team")
 	bool OnSameTeam(AActor* OtherActor) const;
 	
+	// AttackTargetを見失った３秒後に呼ばれる関数
+	UFUNCTION()
+	void SeekAttackTarget();
+	
+	// 過去に視認していたが、現在は視界から外れて見失った対象（ターゲット）を検知する
+	UFUNCTION()
+	void CheckIfForgottenSeeActor();
+	
+	//完全に視界からロストしたアクターのリスト除外とステート初期化を行う
+	UFUNCTION()
+	void HandleForgotActor (AActor* Actor);
+	
 	// Set Value as FloatノードのKeyNameの変数
 	UPROPERTY(EditDefaultsOnly,Category="Blackboard")
 	FName AttackRediusKeyName = "AttackRadius";
@@ -75,6 +92,14 @@ protected:
 	// Set Value as FloatノードのKeyNameの変数
 	UPROPERTY(EditDefaultsOnly,Category="Blackboard")
 	FName DefendRadiusKeyName = "DefendRadius";
+	
+	// Set Value as ObjectノードのKeyNameの変数
+	UPROPERTY(EditDefaultsOnly,Category="Blackboard")
+	FName AttackTargetKeyName = "AttackTarget";
+	
+	// Set Value as VectorノードのKeyNameの変数
+	UPROPERTY(EditDefaultsOnly,Category="Blackboard")
+	FName PointOfInterestKeyName = "PointOfInterest";
 	
 	// 付与する GameplayEffect (GE_Passive)
 	UPROPERTY(EditDefaultsOnly,Category="StateEffect")
@@ -84,22 +109,36 @@ protected:
 	UPROPERTY(EditDefaultsOnly,Category="StateEffect")
 	TSubclassOf<class UGameplayEffect>AttackingStateEffect;
 	
+	// 付与する GameplayEffect (GE_Seeking)
+	UPROPERTY(EditDefaultsOnly,Category="StateEffect")
+	TSubclassOf<class UGameplayEffect>SeekingStateEffect;
+	
+	// 付与する GameplayEffect (GE_Investigating)
+	UPROPERTY(EditDefaultsOnly,Category="StateEffect")
+	TSubclassOf<class UGameplayEffect>InvestigatingStateEffect;
+	
 	// 視覚で捉えたアクターのリスト (BPの Known Seen Actors)
-	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite,Category="AIPerception")
+	UPROPERTY(EditDefaultsOnly,Category="AIPerception")
 	TArray<AActor*> KnownSeenActors;
 	
 	// Seekingタイマーのハンドル (BPの Seek Attack Target Timer)
-	UPROPERTY(BlueprintReadWrite,Category="AITimer")
+	UPROPERTY(EditDefaultsOnly,Category="AITimer")
 	FTimerHandle SeekAttackTargetTimer;
 	
-	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite, Category="TargetActor")
-	AActor* TargetActor;
+	// タイマー制御用のハンドル (BPの Check Forgotten Actor Timer 変数
+	UPROPERTY(EditDefaultsOnly,Category="AITimer")
+	FTimerHandle  CheckForgottenActorTimer;
 	
+	//Seekingを始める時間の変数(TimeToSeeAfterLosingSight)
+	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite,Category="AITimer")
+	float TimeToSeeAfterLosingSight;
 	
-	// タイマー制御用のハンドル (BPの Check Forgotten Actor Timer 変数)
-	FTimerHandle CheckForgottenActorTimer;
+	//AttakTarget変数
+	UPROPERTY(EditDefaultsOnly,Category="AttackTarget")
+	AActor* AttackTarget;
 	
 	// 現在のStateエフェクトのハンドル (BPの Current State Effect 変数)
+	UPROPERTY(EditDefaultsOnly,Category="CurrentState")
 	FActiveGameplayEffectHandle CurrentStateEffect;
 	
 private:

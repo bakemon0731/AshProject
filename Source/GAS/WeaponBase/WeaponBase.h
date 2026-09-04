@@ -107,21 +107,21 @@ protected:
 	USceneComponent* SpawnPoint;
 	
 	// --- 変数 ---
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HitScanTrace")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "HitScanTrace")
 	float HitScanRadius = 20.0f;
 	
-	UPROPERTY(BlueprintReadOnly, Category = "HitScanTrace")
+	UPROPERTY(EditDefaultsOnly, Category = "HitScanTrace")
 	TArray<AActor*> HitActors;
 	
-	UPROPERTY(BlueprintReadOnly, Category = "HitScanTrace")
+	UPROPERTY(EditDefaultsOnly, Category = "HitScanTrace")
 	FTimerHandle HitScanTimer;
 	
 	//ダメージエフェクトを適用する変数
-	UPROPERTY(BlueprintReadOnly, Category = "GameplayEffect")
+	UPROPERTY(EditDefaultsOnly,Category = "GameplayEffect")
 	FGameplayEffectSpecHandle EffectSpecHandle;
 	
 	//デバフのゲームプレイエフェクトを適用する変数
-	UPROPERTY(BlueprintReadOnly, Category = "GameplayEffect")
+	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly, Category = "GameplayEffect")
 	TSubclassOf<UGameplayEffect> DebufftoApply;
 	
 	// --- 関数 ---
@@ -150,7 +150,7 @@ public:
 	
 	
 	// 武器コンポーネントやブループリントから参照・設定できるようにする変数
-	UPROPERTY(BlueprintReadOnly, Category = "WeaponConfig")
+	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite, Category = "WeaponConfig")
 	FSWeaponConfig WeaponConfig;
 
 };

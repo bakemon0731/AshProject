@@ -49,7 +49,7 @@ bool bAbilitiesChanged = false;
 				bAbilitiesChanged = true;
 				break;
 			}
-		}	
+		}	 
 	}
 	if (bAbilitiesChanged)
 	{
