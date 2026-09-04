@@ -10,7 +10,7 @@ public class GAS : ModuleRules
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "GameplayAbilities","GameplayTasks","GameplayTags", "AIModule" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "GameplayAbilities","GameplayTasks","GameplayTags", "AIModule"});
 		
 		//GameplayAbilities
 		//ゲーム内のキャラクターが使用できる 能力やスキルのシステム を提供します

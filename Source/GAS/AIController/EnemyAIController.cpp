@@ -4,7 +4,7 @@
 #include "EnemyAIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BehaviorTree.h"
-#include "GAS/EnemyCharacter/NexusEnemybase.h"// 敵専用クラスのヘッダー
+#include "GAS/EnemyCharacter/NexusEnemybase.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISense.h"
 #include "Perception/AISense_Sight.h"
@@ -14,7 +14,6 @@
 #include "Perception/AISenseConfig_Hearing.h"
 #include "Perception/AISenseConfig_Damage.h"
 #include "AbilitySystemComponent.h"
-
 
 // Sets default values
 AEnemyAIController::AEnemyAIController()
@@ -170,7 +169,65 @@ void AEnemyAIController::SetStateAsPassive()
 
 void AEnemyAIController::SetStateAsAttacking(AActor* Actor)
 {
+	// 引数が無効な場合は、記憶している現在の TargetActor を使用する(Selectノードに相当)
+	AActor* NewAttackTarget = IsValid(Actor) ? Actor : AttackTarget;
+	
+	// どちらも無効な場合は処理を中断
+	if(!IsValid(NewAttackTarget))
+	{
+		return;
+	}
+	
+	//ターゲットに State.Dead タグがついているか確認
+	if (IAbilitySystemInterface* TargetASI = Cast<IAbilitySystemInterface>(NewAttackTarget))
+	{
+		if (UAbilitySystemComponent* TargetASC = TargetASI->GetAbilitySystemComponent())
+		{
+			FGameplayTag DeadTag = FGameplayTag::RequestGameplayTag(FName("State.Dead"));
+			if (TargetASC->HasMatchingGameplayTag(DeadTag))
+			{
+				// ターゲットが死んでいれば Passive に戻して終了
+				SetStateAsPassive();
+				return;
+			}
+		}
+	}
+	
+	// Blackboard の AttackTarget を更新
+	if (UBlackboardComponent* BB = GetBlackboardComponent())
+	{
+		BB -> SetValueAsObject(AttackTargetKeyName,NewAttackTarget);
+	}
+	
+	//ステートエフェクトを Attacking に変更
 	ChangeStateEffect(AttackingStateEffect);
+	
+	//ターゲットをメンバ変数に保存
+	AttackTarget = NewAttackTarget;
+}
+
+void AEnemyAIController::SetStateAsSeeking(FVector Location)
+{
+	//ステートエフェクトを Seeking に変更
+	ChangeStateEffect(SeekingStateEffect);
+	
+	//Blackboard の PointOfInterest を更新 (Set Value as Vector)
+	if (UBlackboardComponent* BB = GetBlackboardComponent())
+	{
+		BB->SetValueAsVector(PointOfInterestKeyName,Location); 
+	}
+}
+
+void AEnemyAIController::SetStateAsInvestigating(FVector Location)
+{
+	//ステートエフェクトを Investgating に変更
+	ChangeStateEffect(InvestigatingStateEffect);
+	
+	//Blackboard の PointOfInterest を更新 (Set Value as Vector)
+	if (UBlackboardComponent* BB = GetBlackboardComponent())
+	{
+		BB->SetValueAsVector(PointOfInterestKeyName,Location); 
+	}
 }
 
 
@@ -209,7 +266,8 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 			}
 		
 		//SetTimerByEventのセット
-		GetWorldTimerManager().SetTimer(CheckForgottenActorTimer,
+		GetWorldTimerManager().SetTimer(
+			CheckForgottenActorTimer,
 			this,&AEnemyAIController::CheckIfForgottenSeeActor,
 			0.5f,
 			true
@@ -228,6 +286,45 @@ void AEnemyAIController::OnUnPossess()
 
 void AEnemyAIController::CheckIfForgottenSeeActor()
 {
+	if (!PerceptionComp) return;
+	
+	// BPの「Get Known Perceived Actors (Sense: Sight)」に相当する処理
+	TArray<AActor*> CurrentlyPerceivedActors;
+	PerceptionComp->GetKnownPerceivedActors(UAISense_Sight::StaticClass(),CurrentlyPerceivedActors);
+	
+	// BPの「Length != Length」の判定
+	if (KnownSeenActors.Num() != CurrentlyPerceivedActors.Num())
+	{
+		// C++特有の注意点：配列(KnownSeenActors)をループで回しながら
+		// 中身をRemoveすると要素がズレてクラッシュする危険があるため、
+		// 配列の「末尾(Num() - 1)」から「先頭(0)」に向かって逆順でループを回します。
+		for (int32 i = KnownSeenActors.Num() -1; i >= 0; i--)
+		{
+			AActor* SeenActor = KnownSeenActors[i];
+			
+			// BPの「Find == -1 (見つからなかった場合)」に相当する処理
+			// Containsは配列内に指定要素が存在するかをboolで返します
+			if (!CurrentlyPerceivedActors.Contains(SeenActor))
+			{
+				HandleForgotActor(SeenActor);
+			}
+		}
+	}
+}
+
+void AEnemyAIController::HandleForgotActor(AActor* Actor)
+{
+	if (!Actor) return;
+	
+	// BPの「Remove (Item)」に相当
+	KnownSeenActors.Remove(Actor);
+	
+	// BPの「Actor == AttackTarget」の判定
+	if (Actor == AttackTarget)
+	{
+		// ターゲットを完全に見失ったため、ステートをPassiveに戻す
+		SetStateAsPassive();
+	}
 }
 
 bool AEnemyAIController::CanSenseActor(AActor* Actor, TSubclassOf<class UAISense> Sense, FAIStimulus& OutStimulus)
@@ -348,7 +445,7 @@ void AEnemyAIController::HandleSensedSight(AActor* Actor)
 	else if (CurrentState.MatchesTagExact(TagAttacking))
 	{
 		// 攻撃中の場合、見つけたActorが現在のAttackTargetと同じか確認
-		if (Actor == TargetActor)
+		if (Actor == AttackTarget)
 		{
 			// 再びターゲットを視認したのでSeekingのタイマーを停止
 			GetWorldTimerManager().ClearTimer(SeekAttackTargetTimer);
@@ -358,14 +455,91 @@ void AEnemyAIController::HandleSensedSight(AActor* Actor)
 
 void AEnemyAIController::HandleLostSight(AActor* Actor)
 {
+	// 引数が無効な場合は処理しない
+	if (!Actor) return;
+	
+	//見失ったアクターが現在のターゲット(AttackTarget)か確認
+	if (Actor == AttackTarget)
+	{
+		// 現在のステートを取得
+		FGameplayTag CurrentState = GetCurrentState();
+		
+		//判定対象のStateタグを準備
+		FGameplayTag TagAttacking = FGameplayTag::RequestGameplayTag(FName("State.Attacking"));
+		FGameplayTag TagInvestigating = FGameplayTag::RequestGameplayTag("State.Investigating");
+		
+		// 現在のステートが Attacking または Investigating の場合
+		if (CurrentState.MatchesTagExact(TagAttacking) || CurrentState.MatchesTagExact(TagInvestigating))
+		{
+			// すでに動いているタイマーがあればリセットする (Clear and Invalidate Timer)
+			GetWorldTimerManager().ClearTimer(SeekAttackTargetTimer);
+			
+			// 指定秒数後に SeekAttackTarget 関数を実行するタイマーをセット (Set Timer by Event)
+			GetWorldTimerManager().SetTimer(
+				SeekAttackTargetTimer,
+				this,
+				&AEnemyAIController::SeekAttackTarget,//呼び出す関数（Create Event）
+				TimeToSeeAfterLosingSight,//待機時間
+				false//ループしない
+				);
+		}
+	}
 }
+
+void AEnemyAIController::SeekAttackTarget()
+{
+	// TargetActorが有効か確認
+	if (IsValid(AttackTarget))
+	{
+		// ターゲットの現在位置を取得
+		FVector TargetLocation = AttackTarget -> GetActorLocation();
+		
+		// 取得したLocationを渡してSeekingステートへ移行
+		SetStateAsSeeking(TargetLocation);
+	}
+	
+	// BPの「Clear and Invalidate Timer by Handle」に相当
+	GetWorldTimerManager().ClearTimer(SeekAttackTargetTimer);
+}
+
 
 void AEnemyAIController::HandleSensedSound(FVector Location)
 {
+	
+	// 現在のステートを取得
+	FGameplayTag CurrentState = GetCurrentState();
+	
+	//判定対象のStateタグを準備
+	FGameplayTag TagPassive = FGameplayTag::RequestGameplayTag("State.Passive");
+	FGameplayTag TagInvestigating = FGameplayTag::RequestGameplayTag("State.Investigating");
+	FGameplayTag TagSeeking = FGameplayTag::RequestGameplayTag("State.Seeking");
+	
+	if (CurrentState.MatchesTagExact(TagPassive) || CurrentState.MatchesTagExact(TagInvestigating) || CurrentState.MatchesTagExact(TagSeeking))
+	{
+		SetStateAsInvestigating(Location);
+	}
 }
 
 void AEnemyAIController::HandleSenseDamage(AActor* Actor)
 {
+	// 引数が無効な場合は処理しない
+	if (!Actor) return;
+	
+	// 同じチームなら処理を終了 (早期リターンでネストを防止)
+	if (OnSameTeam(Actor)) return;
+	
+	// 現在のステートを取得
+	FGameplayTag CurrentState = GetCurrentState();
+	
+	//判定対象のStateタグを準備
+	FGameplayTag TagPassive = FGameplayTag::RequestGameplayTag("State.Passive");
+	FGameplayTag TagInvestigating = FGameplayTag::RequestGameplayTag("State.Investigating");
+	FGameplayTag TagSeeking = FGameplayTag::RequestGameplayTag("State.Seeking");
+	
+	if (CurrentState.MatchesTagExact(TagPassive) || CurrentState.MatchesTagExact(TagInvestigating) || CurrentState.MatchesTagExact(TagSeeking))
+	{
+		SetStateAsAttacking(Actor);
+	}
 }
 
 // Called every frame
