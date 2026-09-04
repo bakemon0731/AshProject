@@ -20,6 +20,8 @@ enum class EAbilityInputID : uint8//入力列挙型の定義
 	MovementAbility UMETA(DisplayName = "Movement Ability"),// 4
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilityEndedSignature, UGameplayAbility*, Ability);
+
 UCLASS()
 class GAS_API UNexusGameplayAbility : public UGameplayAbility
 {
@@ -29,20 +31,31 @@ public:
 	
 	UNexusGameplayAbility();
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")//UIに表示するかどうかの変数
+	//UIに表示するかどうかの変数
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	bool ShouldShowInAbilitiesBar = false;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AutoGrantAbility")//自動的にAbilityを発動するかどうかの変数
+	//自動的にAbilityを発動するかどうかの変数
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AutoGrantAbility")
 	bool AutoActivateWhenGranted = false;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")//入力ID変数
+	//入力ID変数
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	EAbilityInputID AbilityInputID = EAbilityInputID::None;
+
 	
-	UFUNCTION(BlueprintCallable, Category = "Ability")//すでに適用されたGameplayAbilityのレベルを更新
+	//すでに適用されたGameplayAbilityのレベルを更新
+	UFUNCTION(BlueprintCallable, Category = "Ability")
 	void SetAbilityLevel(int32 NewLevel);
+	
+	//EndAbilityしたことをイベントディスパッチする
+	UPROPERTY(BlueprintAssignable, Category = "Ability")
+	FOnAbilityEndedSignature OnAbilityEnded;
     
 private:	
 
 	UFUNCTION(BlueprintCallable, Category = "Helpers")// プレイヤーコントローラーを持っているかいないかを返す関数。
 	bool HasPC() const;
+	void EndAbility(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	                FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled);
 };

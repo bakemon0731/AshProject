@@ -3,8 +3,6 @@
 
 #include "EnemyAIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "BehaviorTree/BehaviorTree.h"
-#include "GAS/EnemyCharacter/NexusEnemybase.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISense.h"
 #include "Perception/AISense_Sight.h"
@@ -14,6 +12,10 @@
 #include "Perception/AISenseConfig_Hearing.h"
 #include "Perception/AISenseConfig_Damage.h"
 #include "AbilitySystemComponent.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "GAS/GameplayAbilitySystem/Characters/EnemyCharacter/NexusEnemybase.h"
+#include "GAS/Interface/Damageable.h"
+
 
 // Sets default values
 AEnemyAIController::AEnemyAIController()
@@ -73,6 +75,9 @@ AEnemyAIController::AEnemyAIController()
 		
 		PerceptionComp->ConfigureSense(*DamageConfig);
 	}
+	
+	//Seekingを始める時間の変数の初期値
+	TimeToSeeAfterLosingSight = 3.0f;
 }
 
 void AEnemyAIController::ChangeStateEffect(TSubclassOf<class UGameplayEffect> NewStateEffect)
@@ -150,14 +155,14 @@ bool AEnemyAIController::OnSameTeam(AActor* OtherActor) const
 {
 	if (!OtherActor) return false;
 	
-	// 自分と対象のアクターを親クラス ANexusCharacterBase にキャスト
-	const ANexusCharacterBase* MyCharacter = Cast<ANexusCharacterBase>(GetPawn());
-	const ANexusCharacterBase* TargetCharacter = Cast<ANexusCharacterBase>(OtherActor);
+	// 自分（制御対象のPawn）と対象アクターを IDamageable にキャスト
+	const IDamageable* MyDamageable = Cast<IDamageable>(GetPawn());
+	const IDamageable* TargetDamageable = Cast<IDamageable>(OtherActor);
 	
-	// 両者ともにキャスト成功した場合、TeamNumberを直接比較
-	if (MyCharacter && TargetCharacter)
+	// 両者が IDamageable インターフェースを実装していればチーム番号を比較
+	if (MyDamageable && TargetDamageable)
 	{
-		return MyCharacter->TeamNumber == TargetCharacter->TeamNumber;
+		return MyDamageable->GetTeamNumber() == TargetDamageable->GetTeamNumber();
 	}
 	return false;
 }
@@ -165,6 +170,13 @@ bool AEnemyAIController::OnSameTeam(AActor* OtherActor) const
 void AEnemyAIController::SetStateAsPassive()
 {
 	ChangeStateEffect(PassiveStateEffect);
+	
+	//Blackboardのターゲットと保持変数をクリア
+	if (UBlackboardComponent* BB = GetBlackboardComponent())
+	{
+		BB->ClearValue(AttackRediusKeyName);
+	}
+	AttackTarget = nullptr;
 }
 
 void AEnemyAIController::SetStateAsAttacking(AActor* Actor)
@@ -265,10 +277,20 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 				BB->SetValueAsFloat(DefendRadiusKeyName,EnemyPawn->DefendRadius);
 			}
 		
-		//SetTimerByEventのセット
+		//SetTimerByEventのセット(CheckIfForgottenSeeActor)
 		GetWorldTimerManager().SetTimer(
 			CheckForgottenActorTimer,
-			this,&AEnemyAIController::CheckIfForgottenSeeActor,
+			this,
+			&AEnemyAIController::CheckIfForgottenSeeActor,
+			0.5f,
+			true
+			);
+		
+		//SetTimerByEventのセット(CheckAttackTargetAlive)
+		GetWorldTimerManager().SetTimer(
+			CheckTargetAliveTimer,
+			this,
+			&AEnemyAIController::CheckAttackTargetAlive,
 			0.5f,
 			true
 			);
@@ -282,6 +304,9 @@ void AEnemyAIController::OnUnPossess()
 	
 	//Clear and Invalidate Timer by Handleノード。CheckForgottenActorTimer変数を停止。
 	GetWorldTimerManager().ClearTimer(CheckForgottenActorTimer);
+	
+	//Clear and Invalidate Timer by Handleノード。CheckTargetAliveTimer変数を停止。
+	GetWorldTimerManager().ClearTimer(CheckTargetAliveTimer);
 }
 
 void AEnemyAIController::CheckIfForgottenSeeActor()
@@ -324,6 +349,26 @@ void AEnemyAIController::HandleForgotActor(AActor* Actor)
 	{
 		// ターゲットを完全に見失ったため、ステートをPassiveに戻す
 		SetStateAsPassive();
+	}
+}
+
+void AEnemyAIController::CheckAttackTargetAlive()
+{
+	// 攻撃対象（AttackTarget）が存在する場合のみチェック
+	if (IsValid(AttackTarget))
+	{
+		if (IAbilitySystemInterface* TargetASI = Cast<IAbilitySystemInterface>(AttackTarget))
+		{
+			if (UAbilitySystemComponent* TargetASC = TargetASI->GetAbilitySystemComponent())
+			{
+				FGameplayTag DeadTag = FGameplayTag::RequestGameplayTag(FName("State.Dead"));
+				if (TargetASC->HasMatchingGameplayTag(DeadTag))
+				{
+					// ターゲットが死亡しているため、Passiveに戻す
+					SetStateAsPassive();
+				}
+			}
+		}
 	}
 }
 
@@ -449,6 +494,20 @@ void AEnemyAIController::HandleSensedSight(AActor* Actor)
 		{
 			// 再びターゲットを視認したのでSeekingのタイマーを停止
 			GetWorldTimerManager().ClearTimer(SeekAttackTargetTimer);
+			
+			//ターゲットが死んでいるか常に確認
+			if (IAbilitySystemInterface* TargetASI = Cast<IAbilitySystemInterface>(Actor))
+			{
+				if (UAbilitySystemComponent* TargetASC = TargetASI->GetAbilitySystemComponent())
+				{
+					FGameplayTag DeadTag = FGameplayTag::RequestGameplayTag(FName("State.Dead"));
+					if (TargetASC->HasMatchingGameplayTag(DeadTag))
+					{
+						// ターゲットが死んでいれば Passive に戻す
+						SetStateAsPassive();
+					}
+				}
+			}
 		}
 	}
 }
@@ -546,5 +605,6 @@ void AEnemyAIController::HandleSenseDamage(AActor* Actor)
 void AEnemyAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	
 }
 

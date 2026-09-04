@@ -85,6 +85,10 @@ protected:
 	UFUNCTION()
 	void HandleForgotActor (AActor* Actor);
 	
+	// ターゲットの生存を定期的にチェックする関数
+	UFUNCTION()
+	void CheckAttackTargetAlive();
+	
 	// Set Value as FloatノードのKeyNameの変数
 	UPROPERTY(EditDefaultsOnly,Category="Blackboard")
 	FName AttackRediusKeyName = "AttackRadius";
@@ -125,9 +129,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly,Category="AITimer")
 	FTimerHandle SeekAttackTargetTimer;
 	
-	// タイマー制御用のハンドル (BPの Check Forgotten Actor Timer 変数
+	// タイマー制御用のハンドル (BPの Check Forgotten Actor Timer 変数)
 	UPROPERTY(EditDefaultsOnly,Category="AITimer")
 	FTimerHandle  CheckForgottenActorTimer;
+	
+	//現在狙っているターゲットが生きているかのハンドル
+	UPROPERTY(EditDefaultsOnly,Category="AITimer")
+	FTimerHandle CheckTargetAliveTimer;
 	
 	//Seekingを始める時間の変数(TimeToSeeAfterLosingSight)
 	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite,Category="AITimer")
