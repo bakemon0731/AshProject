@@ -28,3 +28,15 @@ bool UNexusGameplayAbility::HasPC() const//HasPC関数ロジック
 	}
 	return PawnObject->GetController()->IsA<APlayerController>();
 }
+
+void UNexusGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, 
+	const FGameplayAbilityActivationInfo ActivationInfo, 
+	bool bReplicateEndAbility, 
+	bool bWasCancelled)
+{
+	// アビリティ終了時にイベントを発火
+	OnAbilityEnded.Broadcast(this);
+	
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+}

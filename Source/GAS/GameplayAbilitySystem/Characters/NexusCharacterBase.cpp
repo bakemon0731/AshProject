@@ -46,6 +46,11 @@ ANexusCharacterBase::ANexusCharacterBase()
 	CombatAttributeSet = CreateDefaultSubobject<UCombatAttributeSet>(TEXT("CombatAttributeSet"));
 }
 
+int32 ANexusCharacterBase::GetTeamNumber() const
+{
+	return TeamNumber;
+}
+
 // Called when the game starts or when spawned
 void ANexusCharacterBase::BeginPlay()
 {

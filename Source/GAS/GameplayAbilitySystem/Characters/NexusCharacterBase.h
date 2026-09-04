@@ -6,10 +6,11 @@
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
 #include "GameFramework/Character.h"
+#include "GAS/Interface/Damageable.h"
 #include "NexusCharacterBase.generated.h"
 
 UCLASS()
-class GAS_API ANexusCharacterBase : public ACharacter, public IAbilitySystemInterface
+class GAS_API ANexusCharacterBase : public ACharacter, public IAbilitySystemInterface, public IDamageable 
 {
 	GENERATED_BODY()
 
@@ -29,8 +30,13 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")// キャラクターに付与される戦闘用の属性セット（Armor、Strengthなど）を管理するための変数
 	class UCombatAttributeSet* CombatAttributeSet;
 	
+	// インターフェース関数のオーバーライド宣言
+	virtual int32 GetTeamNumber() const override;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TeamNumber")
-	int32 TeamNumber = 2;
+	int32 TeamNumber;
+
+	
 	
 	
 protected://マルチプレイヤーでのデータ同期に必要

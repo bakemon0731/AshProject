@@ -81,7 +81,7 @@ void AWeaponBase::HitScan()
 		ObjectTypes, 
 		false,// Trace Complex
 		ActorsToIgnore, 
-		EDrawDebugTrace::ForOneFrame, // デバッグ描画（完成時は None に変更）
+		EDrawDebugTrace::None, // デバッグ描画（完成時は None に変更）
 		OutHits, 
 		true,// Ignore Self
 		FLinearColor::Red,
