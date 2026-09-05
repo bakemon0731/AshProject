@@ -5,21 +5,24 @@
 
 UNexusGameplayAbility::UNexusGameplayAbility()
 {
-	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("GameplayAbility.Active")));//ActivationOwnedTagsにアクティブな共通タグを追加することで、アビリティがアクティブであることを示す。
+	//ActivationOwnedTagsにアクティブな共通タグを追加することで、アビリティがアクティブであることを示す。
+	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("GameplayAbility.Active")));
 	
-	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag("State.Dead"));//PlayerやキャラクターにState.Deadがついていると他のアビリティはブロック（使用不可）になる。
+	//PlayerやキャラクターにState.Deadがついていると他のアビリティはブロック（使用不可）になる。
+	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag("State.Dead"));
 }
 
 void UNexusGameplayAbility::SetAbilityLevel(int32 NewLevel)
 {
-	if (FGameplayAbilitySpec* AbilitySpec = GetCurrentAbilitySpec())//もしAbilitySpecが存在する場合、AbilitySpecのレベルをNewLevelに設定する。
+	//もしAbilitySpecが存在する場合、AbilitySpecのレベルをNewLevelに設定する。
+	if (FGameplayAbilitySpec* AbilitySpec = GetCurrentAbilitySpec())
 	{
 		AbilitySpec->Level = NewLevel;
 	}
 }
 
-
-bool UNexusGameplayAbility::HasPC() const//HasPC関数ロジック
+//HasPC関数ロジック
+bool UNexusGameplayAbility::HasPC() const
 {
 	const APawn* PawnObject = Cast<APawn>(GetAvatarActorFromActorInfo());
 	if (!PawnObject)
@@ -35,7 +38,7 @@ void UNexusGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle,
 	bool bReplicateEndAbility, 
 	bool bWasCancelled)
 {
-	// アビリティ終了時にイベントを発火
+	// アビリティ終了時にイベントを発火「呼ぶ（Call）」
 	OnAbilityEnded.Broadcast(this);
 	
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);

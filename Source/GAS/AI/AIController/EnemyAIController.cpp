@@ -285,17 +285,7 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 			0.5f,
 			true
 			);
-		
-		//SetTimerByEventのセット(CheckAttackTargetAlive)
-		GetWorldTimerManager().SetTimer(
-			CheckTargetAliveTimer,
-			this,
-			&AEnemyAIController::CheckAttackTargetAlive,
-			0.5f,
-			true
-			);
 	}
-	
 }
 
 void AEnemyAIController::OnUnPossess()
@@ -349,26 +339,6 @@ void AEnemyAIController::HandleForgotActor(AActor* Actor)
 	{
 		// ターゲットを完全に見失ったため、ステートをPassiveに戻す
 		SetStateAsPassive();
-	}
-}
-
-void AEnemyAIController::CheckAttackTargetAlive()
-{
-	// 攻撃対象（AttackTarget）が存在する場合のみチェック
-	if (IsValid(AttackTarget))
-	{
-		if (IAbilitySystemInterface* TargetASI = Cast<IAbilitySystemInterface>(AttackTarget))
-		{
-			if (UAbilitySystemComponent* TargetASC = TargetASI->GetAbilitySystemComponent())
-			{
-				FGameplayTag DeadTag = FGameplayTag::RequestGameplayTag(FName("State.Dead"));
-				if (TargetASC->HasMatchingGameplayTag(DeadTag))
-				{
-					// ターゲットが死亡しているため、Passiveに戻す
-					SetStateAsPassive();
-				}
-			}
-		}
 	}
 }
 

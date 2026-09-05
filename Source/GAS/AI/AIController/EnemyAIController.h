@@ -85,10 +85,6 @@ protected:
 	UFUNCTION()
 	void HandleForgotActor (AActor* Actor);
 	
-	// ターゲットの生存を定期的にチェックする関数
-	UFUNCTION()
-	void CheckAttackTargetAlive();
-	
 	// Set Value as FloatノードのKeyNameの変数
 	UPROPERTY(EditDefaultsOnly,Category="Blackboard")
 	FName AttackRediusKeyName = "AttackRadius";
