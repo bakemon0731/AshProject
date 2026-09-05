@@ -20,6 +20,10 @@ enum class EAbilityInputID : uint8//入力列挙型の定義
 	MovementAbility UMETA(DisplayName = "Movement Ability"),// 4
 };
 
+
+//--------------------------------------------------
+//イベントディスパッチャーの定義
+// --------------------------------------------------
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilityEndedSignature, UGameplayAbility*, Ability);
 
 UCLASS()
@@ -49,13 +53,16 @@ public:
 	void SetAbilityLevel(int32 NewLevel);
 	
 	//EndAbilityしたことをイベントディスパッチする
-	UPROPERTY(BlueprintAssignable, Category = "Ability")
+	UPROPERTY(BlueprintAssignable, Category = "Helpers")
 	FOnAbilityEndedSignature OnAbilityEnded;
     
 private:	
 
-	UFUNCTION(BlueprintCallable, Category = "Helpers")// プレイヤーコントローラーを持っているかいないかを返す関数。
+	// プレイヤーコントローラーを持っているかいないかを返す関数。
+	UFUNCTION(BlueprintCallable, Category = "AbilityEnd")
 	bool HasPC() const;
+	
+	
 	void EndAbility(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	                FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled);
 };
