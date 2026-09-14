@@ -1,8 +1,16 @@
-# Unreal Engine Ignored Folders
 Binaries/
+Build/
 DerivedDataCache/
 Intermediate/
 Saved/
-Build/
+Script/
+.idea/
 .vs/
-*.slnContent/
+*.sln
+*.suo
+*.user
+*.ncb
+*.boop
+Content/
+Plugins/
+.vsconfig
