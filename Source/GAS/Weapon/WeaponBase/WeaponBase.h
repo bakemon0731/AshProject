@@ -150,7 +150,7 @@ public:
 	
 	
 	// 武器コンポーネントやブループリントから参照・設定できるようにする変数
-	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite, Category = "WeaponConfig")
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "WeaponConfig")
 	FSWeaponConfig WeaponConfig;
 
 };

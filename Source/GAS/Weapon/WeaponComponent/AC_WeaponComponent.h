@@ -95,7 +95,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly,Replicated,Category= "Weapon")
 	AWeaponBase* PreviouslyEquippedWeapon;
 	
-	UPROPERTY(BlueprintReadOnly,Category="Weapon")
+	UPROPERTY(EditAnywhere,Category="Weapon")
 	FSWeaponConfig UnarmedWeaponConfig;
 
 	
