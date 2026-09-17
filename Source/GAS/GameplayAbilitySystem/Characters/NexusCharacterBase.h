@@ -9,6 +9,8 @@
 #include "GAS/Interface/Damageable.h"
 #include "NexusCharacterBase.generated.h"
 
+class UAnimMontage;
+
 UCLASS()
 class GAS_API ANexusCharacterBase : public ACharacter, public IAbilitySystemInterface, public IDamageable 
 {
@@ -33,12 +35,8 @@ public:
 	// インターフェース関数のオーバーライド宣言
 	virtual int32 GetTeamNumber() const override;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TeamNumber")
-	int32 TeamNumber;
+	virtual UAnimMontage* GetHitReactionMontage_Implementation() const override;
 
-	
-	
-	
 protected://マルチプレイヤーでのデータ同期に必要
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability System")
 	EGameplayEffectReplicationMode AscReplicationMode = EGameplayEffectReplicationMode::Mixed;
@@ -50,7 +48,12 @@ protected://マルチプレイヤーでのデータ同期に必要
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability System")// キャラクターがゲーム開始時に持つべきアビリティのリストを保存する変数
 	TArray<TSubclassOf<UGameplayAbility>> StartingAbilities;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TeamNumber")
+	int32 TeamNumber;
 	
+	// 詳細パネルでキャラクターごとにモンタージュを設定できる変数
+	UPROPERTY(EditAnywhere,BlueprintReadOnly, Category = "HitReaction")
+	TObjectPtr<UAnimMontage> HitReactionMontage;
 	
 protected:
 	// Called when the game starts or when spawned
