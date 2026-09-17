@@ -51,6 +51,11 @@ int32 ANexusCharacterBase::GetTeamNumber() const
 	return TeamNumber;
 }
 
+UAnimMontage* ANexusCharacterBase::GetHitReactionMontage_Implementation() const
+{
+	return HitReactionMontage;
+}
+
 // Called when the game starts or when spawned
 void ANexusCharacterBase::BeginPlay()
 {
