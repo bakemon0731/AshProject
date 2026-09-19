@@ -91,9 +91,25 @@ void ANexusCharacterBase::PossessedBy(AController* NewController)
 	{
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
 		GrantAbilities(StartingAbilities);
+		//魔法をハンドル保持しつつ付与
+		SpellAbilityHandles = GrantAbilities(SpellAbilities);
 	}
 }
 
+bool ANexusCharacterBase::ActivateSpellByIndex(int32 SpellIndex)
+{
+	if (!AbilitySystemComponent)
+	{
+		return false;
+	}
+	
+	if (!SpellAbilityHandles.IsValidIndex(SpellIndex))
+	{
+		return false;
+	}
+	
+	return AbilitySystemComponent->TryActivateAbility(SpellAbilityHandles[SpellIndex]);
+}
 
 //PlayerStateがネットワーク上でレプリケート（同期）された時に呼ばれます（クライアント側）
 //マルチプレイヤーゲームで、クライアント側でも初期化が必要だから
@@ -180,9 +196,8 @@ void ANexusCharacterBase::SendAbilitiesChangedEvent()//アビリティの変更�
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, EventData.EventTag, EventData);
 }
 
-
 void ANexusCharacterBase::MultiSendGameplayEventToSelf_Implementation(AActor* TargetActor,
-	FGameplayEventData EventData)//サーバー側から全クライアントにイベントを送信する関数の実装
+                                                                      FGameplayEventData EventData)//サーバー側から全クライアントにイベントを送信する関数の実装
 {
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor, EventData.EventTag, EventData);
 }
