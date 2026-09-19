@@ -45,8 +45,17 @@ protected://マルチプレイヤーでのデータ同期に必要
 	//デフォルト値：Mixed（混合モード）
 	//機能：ネットワークでアビリティの情報をどう同期するか
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability System")// キャラクターがゲーム開始時に持つべきアビリティのリストを保存する変数
+	// キャラクターがゲーム開始時に持つべきアビリティのリストを保存する変数
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability System")
 	TArray<TSubclassOf<UGameplayAbility>> StartingAbilities;
+	
+	//魔法選択メニューのIndexと対応させる配列（順番が重要）
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability System|Spells")
+	TArray<TSubclassOf<UGameplayAbility>> SpellAbilities;
+	
+	//魔法選択メニューのIndexと対応させるハンドル保持用配列
+	UPROPERTY(BlueprintReadOnly, Category = "Ability System|Spells")
+	TArray<FGameplayAbilitySpecHandle> SpellAbilityHandles;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TeamNumber")
 	int32 TeamNumber;
@@ -54,6 +63,10 @@ protected://マルチプレイヤーでのデータ同期に必要
 	// 詳細パネルでキャラクターごとにモンタージュを設定できる変数
 	UPROPERTY(EditAnywhere,BlueprintReadOnly, Category = "HitReaction")
 	TObjectPtr<UAnimMontage> HitReactionMontage;
+	
+	//体を曲げるPith量を保存する変数
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pitch")
+	float Pitch;
 	
 protected:
 	// Called when the game starts or when spawned
@@ -79,23 +92,27 @@ public:
 
 	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	
-	UFUNCTION(BlueprintCallable, Category = "AbilitySystem")// アビリティを付与する関数
+	// アビリティを付与する関数
+	UFUNCTION(BlueprintCallable, Category = "AbilitySystem")
 	TArray<FGameplayAbilitySpecHandle>GrantAbilities(TArray<TSubclassOf<UGameplayAbility>> AbilitiesToGrant,int32 Level = 1);
 	
-	
-	UFUNCTION(BlueprintCallable, Category = "AbilitySystem")// アビリティを削除する関数
+	// アビリティを削除する関数
+	UFUNCTION(BlueprintCallable, Category = "AbilitySystem")
 	void RemoveAbilities(TArray<FGameplayAbilitySpecHandle> AbilityHandlesToRemove);
 
-	
-	UFUNCTION(BlueprintCallable, Category = "AbilitySystem")// アビリティの変更を知らせるゲームプレイイベントを送る関数
+	// アビリティの変更を知らせるゲームプレイイベントを送る関数
+	UFUNCTION(BlueprintCallable, Category = "AbilitySystem")
 	void SendAbilitiesChangedEvent();
 	
-	
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "AbilitySystem")// サーバーRPC呼び出し関数　＝　クライアントからサーバーにイベントを送信する関数
+	// サーバーRPC呼び出し関数　＝　クライアントからサーバーにイベントを送信する関数
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "AbilitySystem")
 	void ServerSendGameplayEventToSelf(FGameplayEventData EventData );
 	
-	
-	UFUNCTION(NetMulticast, Reliable, BlueprintCallable, Category = "AbilitySystem")// マルチキャストRPC呼び出し関数　＝　サーバーから全クライアントにイベントを送信する関数
+	// マルチキャストRPC呼び出し関数　＝　サーバーから全クライアントにイベントを送信する関数
+	UFUNCTION(NetMulticast, Reliable, BlueprintCallable, Category = "AbilitySystem")
 	void MultiSendGameplayEventToSelf(AActor*TargetActor, FGameplayEventData EventData);
 	
+	// Index指定で魔法を発動する関数（ディスパッチャーAbilityから呼ばれる）
+	UFUNCTION(BlueprintCallable, Category = "AbilitySystem")
+	bool ActivateSpellByIndex(int32 SpellIndex);
 };

@@ -7,6 +7,8 @@
 #include "Perception/AISense_Damage.h"
 #include "Net/UnrealNetwork.h"
 #include "GAS/Interface/Damageable.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 UBasicAttributeSet::UBasicAttributeSet()
 {
@@ -17,8 +19,11 @@ UBasicAttributeSet::UBasicAttributeSet()
     Damage = 0.f;
     Shield = 0.f;
     MaxShield = 100.f;
+   MoveSpeed = 500.f;
+   MaxMoveSpeed = 500.f;
 }
 
+//変数の同期設定
 void UBasicAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -29,8 +34,11 @@ void UBasicAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
     DOREPLIFETIME_CONDITION_NOTIFY(UBasicAttributeSet, MaxStamina, COND_None, REPNOTIFY_Always);
     DOREPLIFETIME_CONDITION_NOTIFY(UBasicAttributeSet, Shield, COND_None, REPNOTIFY_Always);
     DOREPLIFETIME_CONDITION_NOTIFY(UBasicAttributeSet, MaxShield, COND_None, REPNOTIFY_Always);
+    DOREPLIFETIME_CONDITION_NOTIFY(UBasicAttributeSet, MoveSpeed, COND_None, REPNOTIFY_Always);
+    DOREPLIFETIME_CONDITION_NOTIFY(UBasicAttributeSet, MaxMoveSpeed, COND_None, REPNOTIFY_Always);
 }
 
+//値の制限
 void UBasicAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
 {
     Super::PreAttributeChange(Attribute, NewValue);
@@ -47,8 +55,13 @@ void UBasicAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute,
     {
        NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxShield());
     }  
+    else if (Attribute == GetMoveSpeedAttribute())
+    {
+       NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxMoveSpeed());
+    }
 }
 
+//Gameplay Effect が実行された時
 void UBasicAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
 {
     Super::PostGameplayEffectExecute(Data);
@@ -170,7 +183,7 @@ void UBasicAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallb
           }
        }
     }
-
+   
     if (Data.EvaluatedData.Attribute == GetHealthAttribute())
     {
        SetHealth(GetHealth());
@@ -179,12 +192,16 @@ void UBasicAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallb
     {
        SetStamina(GetStamina());
     }
+   
+   
 }
 
+//「値が変化したすべてのタイミング」で確実に呼ばれる
 void UBasicAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue, float NewValue)
 {
     Super::PostAttributeChange(Attribute, OldValue, NewValue);
     
+   //死亡判定処理
     if (Attribute == GetHealthAttribute() && NewValue <= 0.f)
     {
        FGameplayTagContainer DeathAbilityTagContainer;
@@ -192,6 +209,7 @@ void UBasicAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribute
        GetOwningAbilitySystemComponent()->TryActivateAbilitiesByTag(DeathAbilityTagContainer);
     }
     
+   //シールド判定処理
     if (Attribute == GetShieldAttribute())
     {
        if (NewValue > 0.f && OldValue <= 0.f)
@@ -204,4 +222,18 @@ void UBasicAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribute
           GetOwningAbilitySystemComponent()->ExecuteGameplayCue(FGameplayTag::RequestGameplayTag("GameplayCue.ShieldDown"));
        }  
     }
+   
+   //移動速度反映処理
+   if (Attribute == GetMoveSpeedAttribute())
+   {
+      // オーナーをACharacterとして取得
+      ACharacter* OwningCharacter = Cast<ACharacter>(GetOwningActor());
+      
+      // CharacterMovementComponentを持っているか確認し、値を上書きする
+      if (OwningCharacter && OwningCharacter->GetCharacterMovement())
+      {
+         OwningCharacter->GetCharacterMovement()->MaxWalkSpeed = NewValue;
+      }
+   }
+   
 }
