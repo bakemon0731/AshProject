@@ -9,6 +9,7 @@
 #include "GAS/GamePlayAbilitySystem/Abilities/NexusGameplayAbility.h"
 #include "GAS/GamePlayAbilitySystem/AttributeSets/BasicAttributeSet.h"
 #include "GAS/GamePlayAbilitySystem/AttributeSets/CombatAttributeSet.h"
+#include "GAS/SpellSystem/SpellComponent/AC_SpellComponent.h"
 
 // Sets default values
 ANexusCharacterBase::ANexusCharacterBase()
@@ -44,6 +45,8 @@ ANexusCharacterBase::ANexusCharacterBase()
 	BasicAttributeSet = CreateDefaultSubobject<UBasicAttributeSet>(TEXT("BasicAttributeSet"));
 	//戦闘用の属性セットを追加
 	CombatAttributeSet = CreateDefaultSubobject<UCombatAttributeSet>(TEXT("CombatAttributeSet"));
+	//AC_SpellComponentを追加
+	SpellManagerComponent = CreateDefaultSubobject<UAC_SpellComponent>(TEXT("SpellManagerComponent"));
 }
 
 int32 ANexusCharacterBase::GetTeamNumber() const
@@ -90,10 +93,16 @@ void ANexusCharacterBase::PossessedBy(AController* NewController)
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+		// GA_CastSelectedSpell を含む
 		GrantAbilities(StartingAbilities);
-		//魔法をハンドル保持しつつ付与
-		SpellAbilityHandles = GrantAbilities(SpellAbilities);
+		
+		if (SpellManagerComponent)
+		{
+			SpellManagerComponent->InitializeKnownSpells(AbilitySystemComponent);
+		}
 	}
+	
+	
 }
 
 bool ANexusCharacterBase::ActivateSpellByIndex(int32 SpellIndex)
