@@ -22,15 +22,20 @@ public:
 	ANexusCharacterBase();//キャラクターの初期化
 	
 	// AbilitySystemComponent<<<ゲーム中にアビリティを使うためのコンポーネント
-	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
 	UAbilitySystemComponent* AbilitySystemComponent;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")// キャラクターに付与される基本属性セットを管理するための変数
+	// キャラクターに付与される基本属性セットを管理するための変数
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
 	class UBasicAttributeSet* BasicAttributeSet;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")// キャラクターに付与される戦闘用の属性セット（Armor、Strengthなど）を管理するための変数
+	// キャラクターに付与される戦闘用の属性セット（Armor、Strengthなど）を管理するための変数
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
 	class UCombatAttributeSet* CombatAttributeSet;
+	
+	//キャラクターにAC_SpellComponentを追加。
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
+	TObjectPtr<class UAC_SpellComponent> SpellManagerComponent;
 	
 	// インターフェース関数のオーバーライド宣言
 	virtual int32 GetTeamNumber() const override;
