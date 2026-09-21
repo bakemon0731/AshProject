@@ -28,8 +28,9 @@ public:
 	UPROPERTY(ReplicatedUsing=OnRep_EquippedSpellSlots, BlueprintReadOnly, Category= "Spells")
 	TArray<TObjectPtr<USpellDataAsset>> EquippedSpellSlots;
 	
+	//Spellスロット数
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category= "Spells")
-	int32 NumSpellSlots = 5;
+	int32 NumSpellSlots = 10;
 	
 	//イベントディスパッチャーの宣言変数
 	UPROPERTY(BlueprintAssignable,Category= "Spells")
@@ -59,6 +60,10 @@ public:
 	UFUNCTION(BlueprintPure, Category= "Spells")
 	bool IsSpellEquippedInAnySlot(USpellDataAsset* Spell) const;
 	
+	//サーバーへ選択結果を明示的に送るServerRPC
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category= "AbilitySystem")
+	void Server_SetSelectedSpellIndex(int32 NewIndex);
+	
 protected:
 	
 	UPROPERTY()
@@ -66,6 +71,9 @@ protected:
 	
 	UPROPERTY()
 	TMap<TSubclassOf<UGameplayAbility>,FGameplayAbilitySpecHandle> SpellHandleMap;
+	
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category= "AbilitySystem")
+	int32 SelectedSpellIndex;
 	
 protected:
 	// Called when the game starts

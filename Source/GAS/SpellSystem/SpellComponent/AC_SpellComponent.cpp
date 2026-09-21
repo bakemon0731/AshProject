@@ -118,6 +118,11 @@ bool UAC_SpellComponent::IsSpellEquippedInAnySlot(USpellDataAsset* Spell) const
 	return Spell && EquippedSpellSlots.Contains(Spell);
 }
 
+void UAC_SpellComponent::Server_SetSelectedSpellIndex_Implementation(int32 NewIndex)
+{
+	SelectedSpellIndex = NewIndex;
+}
+
 // Called when the game starts
 void UAC_SpellComponent::BeginPlay()
 {

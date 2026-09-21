@@ -30,16 +30,24 @@ void ANexusPlayerbase::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
-// 詠唱開始通知を受け取ったら、UIにCallする。
+// 詠唱開始通知を受け取ったら、UIにCallする。(詠唱開始。)
 void ANexusPlayerbase::NotifyStartCast_Implementation(float ChargeTime)
 {
-	OnCastStarted.Broadcast(ChargeTime);
+	// このキャラクターがローカルPCのプレイヤーによって操作されている場合のみデリゲートを飛ばす
+	if (IsLocallyControlled())
+	{
+		OnCastStarted.Broadcast(ChargeTime);
+	}
 }
 
 // 詠唱キャンセル通知を受け取ったら、UIにCallする。
 void ANexusPlayerbase::NotifyCancelCast_Implementation()
 {
-	OnCastCanceled.Broadcast();
+	// 同様にローカル制御されているかチェック
+	if (IsLocallyControlled())
+	{
+		OnCastCanceled.Broadcast();
+	}
 }
 
 
