@@ -32,6 +32,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category= "Spells")
 	int32 NumSpellSlots = 10;
 	
+	//最大記憶容量
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category= "Spells")
+	int32 MaxMemoryCapacity = 10;
+	
 	//イベントディスパッチャーの宣言変数
 	UPROPERTY(BlueprintAssignable,Category= "Spells")
 	FOnEquippedSpellsChanged OnEquippedSpellsChanged;
@@ -50,19 +54,40 @@ public:
 	UFUNCTION(BlueprintCallable, Category= "Spells")
 	void EquipSpellToSlot(int32 SlotIndex,USpellDataAsset* Spell);
 	
+	//(読み取り専用）
 	UFUNCTION(BlueprintPure, Category= "Spells")
 	USpellDataAsset* GetEquippedSpellAtSlot(int32 SlotIndex) const;
 	
 	UFUNCTION(BlueprintPure, Category= "Spells")
 	int32 GetNumSpellSlots() const { return NumSpellSlots; }
 	
-	//装備中の魔法をスペルブックから非表示にする
+	//装備中の魔法をスペルブックから非表示にする（読み取り専用）
 	UFUNCTION(BlueprintPure, Category= "Spells")
 	bool IsSpellEquippedInAnySlot(USpellDataAsset* Spell) const;
 	
 	//サーバーへ選択結果を明示的に送るServerRPC
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category= "AbilitySystem")
 	void Server_SetSelectedSpellIndex(int32 NewIndex);
+	
+	//装備しているSpellSlotからデータアセットのCost変数を出してTotalで返す関数。（読み取り専用）
+	UFUNCTION(BlueprintPure, Category= "Spells")
+	int32 GetUsedMemoryCapacity() const;
+	
+	//MaxMemoryCapacity変数の値を返す。（読み取り専用）
+	UFUNCTION(BlueprintPure, Category= "Spells")
+	int32 GetMaxMemoryCapacity() const {return MaxMemoryCapacity; }
+	
+	// 「この魔法をこのスロットに入れられるか」を事前判定する関数。（読み取り専用）
+	UFUNCTION(BlueprintPure, Category= "Spells")
+	bool CanEquipSpellToSlot(int32 SlotIndex,USpellDataAsset* Spell) const;
+	
+	//コスト順に並べ替えられた、習得済みの魔法一覧を取得する関数。（読み取り専用、ソート）
+	UFUNCTION(BlueprintPure, Category= "Spells")
+	TArray<USpellDataAsset*> GetKnownSpellsSortedByCost() const;
+	
+	//このTierに属するKnownSpellsのうち、装備されていないものが何個あるかをデータから直接数える関数
+	UFUNCTION(BlueprintCallable, Category= "Spells")
+	int32 GetUnequippedSpellCountByCost(int32 Cost) const;
 	
 protected:
 	

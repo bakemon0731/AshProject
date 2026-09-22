@@ -3,6 +3,7 @@
 
 #include "AC_SpellComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Algo/Sort.h"
 
 
 // Sets default values for this component's properties
@@ -83,6 +84,12 @@ void UAC_SpellComponent::Server_EquipSpellToSlot_Implementation(int32 SlotIndex,
 		return;
 	}
 	
+	//SpellCostの記憶容量オーバーなら装備拒否
+	if (!CanEquipSpellToSlot(SlotIndex,Spell))
+	{
+		return;
+	}
+	
 	// 同じ魔法が既に別スロットに入っていたら、そちらを空にする（一意装備の強制）
 	if (Spell)
 	{
@@ -121,6 +128,81 @@ bool UAC_SpellComponent::IsSpellEquippedInAnySlot(USpellDataAsset* Spell) const
 void UAC_SpellComponent::Server_SetSelectedSpellIndex_Implementation(int32 NewIndex)
 {
 	SelectedSpellIndex = NewIndex;
+}
+
+//装備しているSpellSlotからデータアセットのCost変数を出してトータルで返す
+int32 UAC_SpellComponent::GetUsedMemoryCapacity() const
+{
+	int32 Total = 0;
+	for (USpellDataAsset* Spell : EquippedSpellSlots)
+	{
+		if (Spell)
+		{
+			Total += Spell->Cost;
+		}
+	}
+	return Total;
+}
+
+bool UAC_SpellComponent::CanEquipSpellToSlot(int32 SlotIndex, USpellDataAsset* Spell) const
+{
+	//もし渡されたSpellがnullptrなら、スロットの枠が空くのでtrue（装備可能）を返す。
+	if (!Spell)
+	{
+		return true;
+	}
+	
+	//有効ではない存在しないスロット番号はfalseを返しす。
+	if (!EquippedSpellSlots.IsValidIndex(SlotIndex))
+	{
+		return false;
+	}
+	
+	//現在のSpellSlotにあるSpellCostの合計を取得。
+	int32 UsedWithoutThisSpell = GetUsedMemoryCapacity();
+	
+	//現在の使用量の計算。（現在のSpellCostの合計　- 古いSpellCost値　= その古いSpellCost値が無いと仮定した使用量）
+	if (USpellDataAsset* CurrentInSlot = EquippedSpellSlots[SlotIndex])
+	{
+		UsedWithoutThisSpell -= CurrentInSlot->Cost;
+	}
+	
+	//新しいSpellCostを足して、最大記憶容量を超えないかチェック
+	return (UsedWithoutThisSpell + Spell -> Cost) <= MaxMemoryCapacity;
+}
+
+//「覚えている魔法リストをコピーして、C++の自動並べ替え機能（Algo::Sort）にコストが小さい順に並び替えたものを返す」という処理
+TArray<USpellDataAsset*> UAC_SpellComponent::GetKnownSpellsSortedByCost() const
+{
+	//KnownSpell変数をSorted変数にコピー。
+	TArray<USpellDataAsset*> Sorted = KnownSpells;
+	
+	Algo::Sort(Sorted,[](const USpellDataAsset* A,const USpellDataAsset* B)
+	{
+		//比較する魔法データ（AとB）がのどちらかnullptrの場合、クラッシュ防止のため並べ替えない。
+		if (!A || !B)
+		{
+			return false;
+		}
+		
+		// Aのコストが、B のコストよりも「小さい（ < ）」ときに true を返す。（ソートのルール）
+		return A -> Cost < B -> Cost;
+	});
+	
+	return Sorted;
+}
+
+int32 UAC_SpellComponent::GetUnequippedSpellCountByCost(int32 Cost) const
+{
+	int32 Count = 0;
+	for (USpellDataAsset* Spell : KnownSpells)
+	{
+		if (Spell && Spell -> Cost == Cost && !EquippedSpellSlots.Contains(Spell))
+		{
+			Count++;
+		}
+	}
+	return Count;
 }
 
 // Called when the game starts

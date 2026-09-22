@@ -35,4 +35,8 @@ public:
 	//Spellの説明
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category = "Spell",meta = (MultiLine = true))
 	FText Description;
+	
+	//Spellの記憶消費コスト
+	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category = "Spell")
+	int32 Cost = 1;
 };
