@@ -16,9 +16,6 @@ class GAS_API USpellDataAsset : public UPrimaryDataAsset
 	GENERATED_BODY()
 	
 public:
-	// 識別用タグ（例: Spell.Fire.FireBall）
-	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category = "Spell")
-	FGameplayTag SpellTag;
 	
 	//SpellのAbilityClass
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category = "Spell")

@@ -205,6 +205,41 @@ int32 UAC_SpellComponent::GetUnequippedSpellCountByCost(int32 Cost) const
 	return Count;
 }
 
+void UAC_SpellComponent::SwapEquippedSpells(int32 SlotIndexA, int32 SlotIndexB)
+{
+	Server_SwapEquippedSpells(SlotIndexA,SlotIndexB);
+}
+
+void UAC_SpellComponent::Server_SwapEquippedSpells_Implementation(int32 SlotIndexA, int32 SlotIndexB)
+{
+	if (!EquippedSpellSlots.IsValidIndex(SlotIndexA) || !EquippedSpellSlots.IsValidIndex(SlotIndexB))
+	{
+		return;
+	}
+	
+	int32 UsedExcludingBoth = GetUsedMemoryCapacity();
+	if (USpellDataAsset* SpellA = EquippedSpellSlots[SlotIndexA])
+	{
+		UsedExcludingBoth -= SpellA -> Cost;
+	}
+	if (USpellDataAsset* SpellB = EquippedSpellSlots[SlotIndexB])
+	{
+		UsedExcludingBoth -= SpellB -> Cost;
+	}
+	
+	int32 NewCostA = EquippedSpellSlots[SlotIndexB] ? EquippedSpellSlots[SlotIndexB]->Cost : 0;
+	int32 NewCostB = EquippedSpellSlots[SlotIndexA] ? EquippedSpellSlots[SlotIndexA]->Cost : 0;
+	
+	if (UsedExcludingBoth + NewCostA + NewCostB > MaxMemoryCapacity)
+	{
+		return;
+	}
+	
+	EquippedSpellSlots.Swap(SlotIndexA,SlotIndexB);
+	OnRep_EquippedSpellSlots();
+}
+
+
 // Called when the game starts
 void UAC_SpellComponent::BeginPlay()
 {
