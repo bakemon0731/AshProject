@@ -89,6 +89,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category= "Spells")
 	int32 GetUnequippedSpellCountByCost(int32 Cost) const;
 	
+	UFUNCTION(BlueprintCallable, Category= "Spells")
+	void SwapEquippedSpells(int32 SlotIndexA,int32 SlotIndexB);
+
+	
 protected:
 	
 	UPROPERTY()
@@ -107,6 +111,9 @@ protected:
 	//ServerRPC
 	UFUNCTION(Server, Reliable)
 	void Server_EquipSpellToSlot(int32 SlotIndex,USpellDataAsset* Spell);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_SwapEquippedSpells(int32 SlotIndexA,int32 SlotIndexB);
 	
 	UFUNCTION()
 	void OnRep_EquippedSpellSlots();
