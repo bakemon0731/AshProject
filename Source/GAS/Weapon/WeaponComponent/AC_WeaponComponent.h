@@ -31,6 +31,10 @@ public:
 	
 	UPROPERTY(BlueprintAssignable,BlueprintCallable,Category= "Weapon Events");
 	FOnWeaponEquipped OnWeaponEquipped;
+	
+	
+	UPROPERTY(BlueprintReadWrite,ReplicatedUsing = OnRep_EquippedWeapon,Category= "Weapon")
+	AWeaponBase* EquippedWeapon;
 
 protected:
 
@@ -88,9 +92,6 @@ protected:
 	
 	UPROPERTY(BlueprintReadWrite,Category= "Weapon")
 	bool IsWieldingWeapon;
-	
-	UPROPERTY(BlueprintReadWrite,ReplicatedUsing = OnRep_EquippedWeapon,Category= "Weapon")
-	AWeaponBase* EquippedWeapon;
 	
 	UPROPERTY(BlueprintReadOnly,Replicated,Category= "Weapon")
 	AWeaponBase* PreviouslyEquippedWeapon;
