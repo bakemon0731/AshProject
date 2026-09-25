@@ -71,6 +71,12 @@ void AProjectileBase::OnSphereBeginOverlap(UPrimitiveComponent* OverlappedComp,
 
 void AProjectileBase::ResolveImpact(AActor* OtherActor)
 {
+	//サーバーの権威でのみ実行する。
+	if (!HasAuthority())
+	{
+		return;
+	}
+	
 	// Hit/Overlap両方から呼ばれる可能性があるため、一度衝突処理をしたら以降は無視する
 	if (bHasImpacted)
 	{
@@ -121,7 +127,7 @@ void AProjectileBase::ApplyEffectToActor(AActor* TargetActor)
 	}
 }
 
-void AProjectileBase::ExecuteImpactCue()
+void AProjectileBase::ExecuteImpactCue_Implementation()
 {
 	if (GameplayCueImpact.IsValid())
 	{
@@ -132,6 +138,21 @@ void AProjectileBase::ExecuteImpactCue()
 		
 		//ExecuteGameplayCueOnActor（ノード）を実行
 		UGameplayCueFunctionLibrary::ExecuteGameplayCueOnActor(this, GameplayCueImpact, CueParams);
+	}
+}
+
+void AProjectileBase::ExecuteSpawnCue_Implementation()
+{
+	//アクティブ時（スポーン時）のゲームプレイキューを実行。
+	if (GameplayCueSpawn.IsValid())
+	{
+		//Cueのパラメーターを設定。（MakeGameplayCueParameterノード）
+		FGameplayCueParameters CueParams;
+		CueParams.Location = GetActorLocation();
+		CueParams.Instigator = ProjectileInstigator;
+		
+		//ExecuteGameplayCueOnActor（ノード）を実行
+		UGameplayCueFunctionLibrary::ExecuteGameplayCueOnActor(this, GameplayCueSpawn, CueParams);
 	}
 }
 
@@ -203,6 +224,12 @@ void AProjectileBase::InitializeAndFire(
 	EffectSpecHandle = InEffectSpecHandle;
 	ProjectileInstigator = InInstigator;
 	
+	//スポーン・発射処理もサーバーの権威でのみ実行されるべきのためチェック。
+	if (!HasAuthority())
+	{
+		return;
+	}
+	
 	// 発射者自身には(PawnをBlockにしていても)当たらないようにする。コリジョンレスポンスは変えず、「このアクターとの衝突だけ無視する」設定を使う。
 	if (ProjectileInstigator)
 	{
@@ -228,19 +255,8 @@ void AProjectileBase::InitializeAndFire(
 			MaxLifetime, 
 			false);
 	}
-	
-	
-	//アクティブ時（スポーン時）のゲームプレイキューを実行。
-	if (GameplayCueSpawn.IsValid())
-	{
-		//Cueのパラメーターを設定。（MakeGameplayCueParameterノード）
-		FGameplayCueParameters CueParams;
-		CueParams.Location = GetActorLocation();
-		CueParams.Instigator = ProjectileInstigator;
-		
-		//ExecuteGameplayCueOnActor（ノード）を実行
-		UGameplayCueFunctionLibrary::ExecuteGameplayCueOnActor(this, GameplayCueSpawn, CueParams);
-	}
+	// ゲームプレイキューを実行。
+	ExecuteSpawnCue();
 }
 
 
