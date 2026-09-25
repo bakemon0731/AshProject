@@ -46,23 +46,22 @@ public:
 	//入力ID変数
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	EAbilityInputID AbilityInputID = EAbilityInputID::None;
-
-	
-	//すでに適用されたGameplayAbilityのレベルを更新
-	UFUNCTION(BlueprintCallable, Category = "Ability")
-	void SetAbilityLevel(int32 NewLevel);
 	
 	//EndAbilityしたことをイベントディスパッチする
 	UPROPERTY(BlueprintAssignable, Category = "Helpers")
 	FOnAbilityEndedSignature OnAbilityEnded;
     
+public:	
+	void EndAbility(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+					FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled);
+	
+	//すでに適用されたGameplayAbilityのレベルを更新
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	void SetAbilityLevel(int32 NewLevel);
+	
 private:	
 
 	// プレイヤーコントローラーを持っているかいないかを返す関数。
 	UFUNCTION(BlueprintCallable, Category = "AbilityEnd")
 	bool HasPC() const;
-	
-	
-	void EndAbility(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-	                FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled);
 };

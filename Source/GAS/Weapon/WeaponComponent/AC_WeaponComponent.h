@@ -48,14 +48,6 @@ protected:
 	UFUNCTION(BlueprintCallable, Category= "Weapon")
 	void GiveWeapon(TSubclassOf<AWeaponBase> WeaponClass);
 	
-	// 武器を装備する関数
-	UFUNCTION(BlueprintCallable, Category= "Weapon")
-	void EquipWeapon (TSubclassOf<AWeaponBase> WeaponClass);
-	
-	// 武器を解除する関数
-	UFUNCTION(BlueprintCallable, Category= "Weapon")
-	void UnequipWeapon();
-	
 	//取り出す武器が背中にある武器と等しいか調べる関数。
 	UFUNCTION(BlueprintCallable, Category= "Weapon")
 	AWeaponBase* GetStowedWeaponByClass(TSubclassOf<AWeaponBase> WeaponClass);
@@ -104,4 +96,12 @@ public:
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
+	
+	// 武器を装備する関数
+	UFUNCTION(BlueprintCallable, Category= "Weapon")
+	void EquipWeapon (TSubclassOf<AWeaponBase> WeaponClass);
+	
+	// 武器を解除する関数
+	UFUNCTION(BlueprintCallable, Category= "Weapon")
+	void UnequipWeapon();
 };
