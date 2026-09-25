@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GAS/GameplayAbilitySystem/Abilities/GA_NexusWeaponAbility/GA_NexusWeaponAbility.h"
+#include "GAS/Projectile/ProjectileBase.h"
 #include "GA_SpellFireBase.generated.h"
 
 class UAnimMontage;
@@ -57,6 +58,10 @@ protected:
 	//ダメージ量のマグニチュード変数。
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category= "Spell|DamageConfig")
 	float DamageMagnitude;
+	
+	//発射物のクラス。
+	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category= "Spell|ProjectileConfig")
+	TSubclassOf<AProjectileBase> ProjectileClass;
 	
 	//発射物のSpeed。
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category= "Spell|ProjectileConfig")
