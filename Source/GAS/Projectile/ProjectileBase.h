@@ -7,6 +7,7 @@
 #include "GameplayEffectTypes.h"
 #include "GameplayTagContainer.h"
 #include "GAS/Interface/PoolableActor.h"
+#include "Iris/ReplicationSystem/ReplicationSystemTypes.h"
 #include "ProjectileBase.generated.h"
 
 class USphereComponent;
@@ -127,8 +128,13 @@ protected:
 	
 	void ApplyEffectToActor(AActor* TargetActor);
 	
-	//インパクト時のGC実行関数。
+	//インパクト時のGC実行関数。NetMulticast化
+	UFUNCTION(NetMulticast,Unreliable)
 	void ExecuteImpactCue();
+	
+	//スポーン時のGC実行関数。NetMulticast化
+	UFUNCTION(NetMulticast,Unreliable)
+	void ExecuteSpawnCue();
 	
 	//インパクト時にActorPoolSubsystemのReleaseActor関数を呼ぶ。
 	void ReturnToPoolOrDestroy();
