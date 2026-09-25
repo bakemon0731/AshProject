@@ -20,7 +20,6 @@ class UGameplayEffect;
  * ・Speed / TargetLocation / EffectSpecHandle / Instigator は InitializeAndFire() 経由でGAから設定する
  * ・ヒット/オーバーラップ時のGameplayCue実行・Effect適用ロジックを保持
  * ・DestroyActorの代わりにActorPoolSubsystemへ返却する
- *
  * ・見た目(コリジョンプロファイル、GameplayCueタグ、Debuffクラス等)はBP側の
  * 「クラスのデフォルト」で調整できるよう、EditDefaultsOnlyで公開しておく。
  */
