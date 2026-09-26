@@ -7,7 +7,8 @@
 #include "DamageCalculationModifier.generated.h"
 
 /**
- * 
+ * ダメージの計算ロジック
+ * 「このダメージは物理か魔法か」を判定（Data.DamageType.〇〇）し、計算を変える。
  */
 UCLASS()
 class GAS_API UDamageCalculationModifier : public UGameplayModMagnitudeCalculation
@@ -23,5 +24,6 @@ private:
 	// 属性のキャプチャ定義
 	FGameplayEffectAttributeCaptureDefinition ArmorDef;
 	FGameplayEffectAttributeCaptureDefinition StrengthDef;
+	FGameplayEffectAttributeCaptureDefinition WillPowerDef;
 	
 };

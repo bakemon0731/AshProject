@@ -4,6 +4,7 @@
 #include "AC_SpellComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Algo/Sort.h"
+#include "GAS/GameplayAbilitySystem/AttributeSets/PrimaryAttributeSet.h"
 
 
 // Sets default values for this component's properties
@@ -168,7 +169,7 @@ bool UAC_SpellComponent::CanEquipSpellToSlot(int32 SlotIndex, USpellDataAsset* S
 	}
 	
 	//新しいSpellCostを足して、最大記憶容量を超えないかチェック
-	return (UsedWithoutThisSpell + Spell -> Cost) <= MaxMemoryCapacity;
+	return (UsedWithoutThisSpell + Spell -> Cost) <= GetMaxMemoryCapacity();
 }
 
 //「覚えている魔法リストをコピーして、C++の自動並べ替え機能（Algo::Sort）にコストが小さい順に並び替えたものを返す」という処理
@@ -210,6 +211,19 @@ void UAC_SpellComponent::SwapEquippedSpells(int32 SlotIndexA, int32 SlotIndexB)
 	Server_SwapEquippedSpells(SlotIndexA,SlotIndexB);
 }
 
+int32 UAC_SpellComponent::GetMaxMemoryCapacity() const
+{
+	if (CachedASC)
+	{
+		if (const UPrimaryAttributeSet* PrimarySet = CachedASC->GetSet<UPrimaryAttributeSet>())
+		{
+			return FMath::RoundToInt(PrimarySet->GetMaxMemoryCapacity());
+		}
+	}
+	// フォールバック値
+	return 15;
+}
+
 void UAC_SpellComponent::Server_SwapEquippedSpells_Implementation(int32 SlotIndexA, int32 SlotIndexB)
 {
 	if (!EquippedSpellSlots.IsValidIndex(SlotIndexA) || !EquippedSpellSlots.IsValidIndex(SlotIndexB))
@@ -230,7 +244,7 @@ void UAC_SpellComponent::Server_SwapEquippedSpells_Implementation(int32 SlotInde
 	int32 NewCostA = EquippedSpellSlots[SlotIndexB] ? EquippedSpellSlots[SlotIndexB]->Cost : 0;
 	int32 NewCostB = EquippedSpellSlots[SlotIndexA] ? EquippedSpellSlots[SlotIndexA]->Cost : 0;
 	
-	if (UsedExcludingBoth + NewCostA + NewCostB > MaxMemoryCapacity)
+	if (UsedExcludingBoth + NewCostA + NewCostB > GetMaxMemoryCapacity())
 	{
 		return;
 	}

@@ -32,10 +32,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category= "Spells")
 	int32 NumSpellSlots = 10;
 	
-	//最大記憶容量
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category= "Spells")
-	int32 MaxMemoryCapacity = 10;
-	
 	//イベントディスパッチャーの宣言変数
 	UPROPERTY(BlueprintAssignable,Category= "Spells")
 	FOnEquippedSpellsChanged OnEquippedSpellsChanged;
@@ -75,7 +71,7 @@ public:
 	
 	//MaxMemoryCapacity変数の値を返す。（読み取り専用）
 	UFUNCTION(BlueprintPure, Category= "Spells")
-	int32 GetMaxMemoryCapacity() const {return MaxMemoryCapacity; }
+	int32 GetReturnMaxMemoryCapacity() const {return GetMaxMemoryCapacity(); }
 	
 	// 「この魔法をこのスロットに入れられるか」を事前判定する関数。（読み取り専用）
 	UFUNCTION(BlueprintPure, Category= "Spells")
@@ -92,6 +88,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category= "Spells")
 	void SwapEquippedSpells(int32 SlotIndexA,int32 SlotIndexB);
 
+	UFUNCTION(BlueprintPure, Category = "Spells")
+	int32 GetMaxMemoryCapacity() const;
 	
 protected:
 	
